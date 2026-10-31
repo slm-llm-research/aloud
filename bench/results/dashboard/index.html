@@ -1,0 +1,360 @@
+<meta name="dash-one-writer">
+<style>
+  .ife { display: grid; gap: var(--cds-gap-xl); font-family: var(--font-anthropic-sans); max-width: 72rem; margin-inline: auto; }
+  .ife h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+  .ife h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; text-wrap: balance; }
+  .ife p { margin: 0; max-width: 68ch; line-height: 1.5; }
+  .ife-head { display: grid; gap: var(--cds-gap-sm); }
+  .ife-lede { color: var(--color-fg-muted); }
+  .ife .ife-lede b, .ife .ife-tile b { font-weight: 600; color: var(--color-fg); }
+  .ife-tiles { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
+  .ife-tile { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+  .ife-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ife-big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .ife-delta { font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; color: var(--color-fg-muted); }
+  .ife-good { color: var(--color-ok); }
+  .ife-bad { color: var(--color-bad); }
+  .ife-grid { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
+  .ife-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); align-content: start; min-width: 0; }
+  .ife-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ife-chart { position: relative; min-height: 220px; }
+  .ife-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ife-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+  .ife-sw { width: 0.625rem; height: 0.625rem; border-radius: 2px; display: inline-block; }
+  .ife-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; }
+  .ife-tip .ife-tip-h { color: var(--cds-text-secondary); }
+  .ife-scroll { overflow: auto; max-height: 34rem; }
+  .ife-wide { overflow-x: auto; }
+  .ife table { border-collapse: collapse; width: 100%; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .ife th { text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); position: sticky; top: 0; background: var(--color-panel); vertical-align: bottom; }
+  .ife td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+  .ife td.ife-num, .ife th.ife-num { text-align: right; white-space: nowrap; }
+  .ife-text { white-space: pre-wrap; min-width: 12rem; max-width: 22rem; }
+  .ife-id { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .ife-pill { display: inline-block; padding: 0 var(--cds-pad-xs); border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+  .ife-search { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); max-width: 20rem; width: 100%; }
+  .ife-defs { display: grid; gap: var(--cds-gap-sm); grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); margin: 0; }
+  .ife-defs div { display: grid; gap: 2px; }
+  .ife-defs dt { font-weight: var(--cds-font-weight-medium); }
+  .ife-defs dd { margin: 0; color: var(--color-fg-muted); line-height: 1.45; }
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+
+<div class="ife">
+  <header class="ife-head">
+    <h1>InstructFlow dictation evals</h1>
+    <p class="ife-lede">Spoken into the real app, today's cleanup code passes <b data-draw="lede-after" data-source="sessions" data-field="pass_rate" data-where="session=20261031-reclean">—</b> of the scenarios. On the same speech-to-text output, the build that was tested passed <b data-draw="lede-before" data-source="sessions" data-field="pass_rate" data-where="session=20261031">—</b>.</p>
+  </header>
+
+  <section class="ife-tiles" id="headline">
+    <div class="ife-tile">
+      <span class="ife-label">Scenarios passed, your voice</span>
+      <span class="ife-big" data-draw="t-pass" data-source="sessions" data-field="pass_rate" data-where="session=20261031-reclean">—</span>
+      <span class="ife-delta" data-draw="d-pass" data-source="voice_change" data-field="pass_change">—</span>
+    </div>
+    <div class="ife-tile">
+      <span class="ife-label">Output word error rate</span>
+      <span class="ife-big" data-draw="t-wer" data-source="sessions" data-field="output_wer" data-where="session=20261031-reclean">—</span>
+      <span class="ife-delta" data-draw="d-wer" data-source="voice_change" data-field="wer_change">—</span>
+    </div>
+    <div class="ife-tile">
+      <span class="ife-label">Speech-to-text word error rate</span>
+      <span class="ife-big" data-draw="t-stt" data-source="sessions" data-field="stt_wer" data-where="session=20261031-reclean">—</span>
+      <span class="ife-delta">ElevenLabs Scribe, your voice</span>
+    </div>
+    <div class="ife-tile">
+      <span class="ife-label">Negations kept</span>
+      <span class="ife-big" data-draw="t-neg" data-source="sessions" data-field="negations_ok" data-where="session=20261031-reclean">—</span>
+      <span class="ife-delta">"not", "don't", "never" on screen as said</span>
+    </div>
+    <div class="ife-tile">
+      <span class="ife-label">Key-up to text, median</span>
+      <span class="ife-big" data-draw="t-p50" data-source="sessions" data-field="p50_ms" data-where="session=20261031-reclean">—</span>
+      <span class="ife-delta" data-draw="d-p95" data-source="sessions" data-field="p95_ms" data-where="session=20261031-reclean">—</span>
+    </div>
+  </section>
+
+  <section class="ife-grid">
+    <article class="ife-card" id="runs-chart">
+      <h2>Pass rate by run</h2>
+      <p class="ife-note">Each run is the same scenario set. Synthetic runs speak the scenarios with macOS text-to-speech into live speech-to-text and the app's cleanup code.</p>
+      <div class="ife-legend">
+        <span><i class="ife-sw" data-sw="0"></i>Your voice</span>
+        <span><i class="ife-sw" data-sw="1"></i>Synthetic voice</span>
+      </div>
+      <div class="ife-chart" data-draw="runs" data-source="sessions"></div>
+    </article>
+    <article class="ife-card" id="modes-chart">
+      <h2>Pass rate by app type, your voice</h2>
+      <p class="ife-note">The build you tested against today's code, on identical speech-to-text output.</p>
+      <div class="ife-legend">
+        <span><i class="ife-sw" data-sw="muted"></i>Build you tested</span>
+        <span><i class="ife-sw" data-sw="0"></i>Today's code</span>
+      </div>
+      <div class="ife-chart" data-draw="modes" data-source="modes"></div>
+    </article>
+  </section>
+
+  <article class="ife-card" id="runs-table">
+    <h2>Every run, every metric</h2>
+    <p class="ife-note">Error rates: lower is better. Everything else: higher is better. Scenarios dictated into a different app than the one they name are left out of a run.</p>
+    <div class="ife-wide">
+      <table data-source="sessions" data-row-key="label">
+        <thead><tr>
+          <th data-field="label">Run</th>
+          <th class="ife-num" data-field="scenarios">Scenarios</th>
+          <th class="ife-num" data-field="pass_rate">Passed</th>
+          <th class="ife-num" data-field="stt_wer">STT WER</th>
+          <th class="ife-num" data-field="output_wer">Output WER</th>
+          <th class="ife-num" data-field="output_cer">Output CER</th>
+          <th class="ife-num" data-field="strict_cer">Strict CER</th>
+          <th class="ife-num" data-field="novel_words">Novel words</th>
+          <th class="ife-num" data-field="kept_words">Kept words</th>
+          <th class="ife-num" data-field="layout_ok">Layout</th>
+          <th class="ife-num" data-field="mode_ok">Mode</th>
+          <th class="ife-num" data-field="negations_ok">Negations</th>
+          <th class="ife-num" data-field="numbers_ok">Numbers</th>
+          <th class="ife-num" data-field="p50_ms">p50 ms</th>
+          <th class="ife-num" data-field="p95_ms">p95 ms</th>
+        </tr></thead>
+        <tbody data-draw="runs-body"></tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="ife-card" id="scenarios">
+    <h2>Before and after, scenario by scenario</h2>
+    <p class="ife-note">Your voice. "Heard" is the speech-to-text output; both builds cleaned that same text. Changed rows come first.</p>
+    <input class="ife-search" id="ife-search" type="search" placeholder="Search scenarios" aria-label="Search scenarios">
+    <div class="ife-scroll">
+      <table data-source="scenarios" data-row-key="scenario">
+        <thead><tr>
+          <th data-field="scenario">Scenario</th>
+          <th data-field="said">Said</th>
+          <th data-field="heard">Heard</th>
+          <th data-field="before">Typed by the build you tested</th>
+          <th data-field="after">Typed by today's code</th>
+          <th data-field="before_result">Before</th>
+          <th data-field="after_result">After</th>
+        </tr></thead>
+        <tbody data-draw="scen-body"></tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="ife-card" id="method">
+    <h2>How it's measured</h2>
+    <dl class="ife-defs">
+      <div><dt>Scenario</dt><dd>A line to say, where to say it (Notes, Gmail, WhatsApp, ChatGPT, Claude Code, a shell), the expected text and checks. The set covers self-corrections, negations, numbers, slang, stutters, lists, email layout and shell symbols.</dd></div>
+      <div><dt>Passed</dt><dd>Required phrases present, banned phrases absent, the right layout for the app, every negation and number kept, and the right mode chosen.</dd></div>
+      <div><dt>STT WER</dt><dd>Word error rate of what speech-to-text heard against the script, after normalizing case, punctuation and number spelling.</dd></div>
+      <div><dt>Output WER and CER</dt><dd>Word and character error rates of what was typed against the expected text, normalized the same way. They measure whether the right words reached the screen.</dd></div>
+      <div><dt>Strict CER</dt><dd>Character error rate with case, punctuation and line breaks kept. It measures layout: list items, email greeting and sign-off lines, command flags.</dd></div>
+      <div><dt>Novel words</dt><dd>Share of typed content words the speaker never said: rewording by the model, or a mishearing such as "love" for "lol".</dd></div>
+      <div><dt>Kept words</dt><dd>Share of the expected text's content words that were typed.</dd></div>
+      <div><dt>Latency</dt><dd>From releasing the key to the text being typed. Synthetic runs time speech-to-text plus cleanup, without the mic or typing.</dd></div>
+    </dl>
+    <p class="ife-note">Harness: bench/scenario_eval.py in the InstructFlow repository (run, replay, reclean, report, compare).</p>
+  </article>
+</div>
+
+<script>
+  const pct = d3.format('.1%');
+  const ms = (v) => d3.format(',')(Math.round(v)) + ' ms';
+  const pts = (v) => (v > 0 ? '+' : v < 0 ? '−' : '±') + d3.format('.1f')(Math.abs(v * 100)) + ' pts';
+
+  dash.calc('voice_change', {
+    inputs: ['sessions'],
+    title: 'Change from the build you tested',
+    description: "Today's code minus the build you tested, both cleaning the same speech-to-text output.",
+    fn: (sessions) => {
+      const before = sessions.find((r) => r.session === '20261031');
+      const after = sessions.find((r) => r.session === '20261031-reclean');
+      if (!before || !after) return [];
+      return [{
+        pass_change: after.pass_rate - before.pass_rate,
+        wer_change: after.output_wer - before.output_wer,
+      }];
+    },
+  });
+
+  const row = (id, session) => {
+    const d = dash.data(id);
+    return d.status === 'ok' ? d.data.find((r) => r.session === session) : null;
+  };
+  const fill = (name, id, session, field, format) => dash.draw(name, (el) => {
+    const r = row(id, session);
+    el.textContent = r ? format(+r[field]) : '—';
+  });
+  fill('lede-after', 'sessions', '20261031-reclean', 'pass_rate', pct);
+  fill('lede-before', 'sessions', '20261031', 'pass_rate', pct);
+  fill('t-pass', 'sessions', '20261031-reclean', 'pass_rate', pct);
+  fill('t-wer', 'sessions', '20261031-reclean', 'output_wer', pct);
+  fill('t-stt', 'sessions', '20261031-reclean', 'stt_wer', pct);
+  fill('t-neg', 'sessions', '20261031-reclean', 'negations_ok', pct);
+  fill('t-p50', 'sessions', '20261031-reclean', 'p50_ms', ms);
+  fill('d-p95', 'sessions', '20261031-reclean', 'p95_ms', (v) => 'p95 ' + ms(v));
+
+  const delta = (name, field, goodWhenUp) => dash.draw(name, (el) => {
+    const d = dash.data('voice_change');
+    const r = d.status === 'ok' ? d.data[0] : null;
+    el.classList.remove('ife-good', 'ife-bad');
+    if (!r) { el.textContent = '—'; return; }
+    const v = +r[field];
+    el.textContent = pts(v) + ' vs the build you tested';
+    if (Math.abs(v) > 1e-9) el.classList.add((v > 0) === goodWhenUp ? 'ife-good' : 'ife-bad');
+  });
+  delta('d-pass', 'pass_change', true);
+  delta('d-wer', 'wer_change', false);
+
+  document.querySelectorAll('[data-sw]').forEach((sw) => {
+    const k = sw.getAttribute('data-sw');
+    sw.style.background = k === 'muted' ? 'var(--cds-chart-muted)' : dash.colors[+k];
+  });
+
+  function tooltip(el) {
+    let tip = el.querySelector('.ife-tip');
+    if (!tip) { tip = document.createElement('div'); tip.className = 'ife-tip'; tip.hidden = true; el.appendChild(tip); }
+    return {
+      show(event, head, line) {
+        tip.replaceChildren();
+        const h = document.createElement('div'); h.className = 'ife-tip-h'; h.textContent = head;
+        const l = document.createElement('div'); l.textContent = line;
+        tip.append(h, l); tip.hidden = false;
+        const box = el.getBoundingClientRect();
+        const x = Math.min(event.clientX - box.left + 12, box.width - tip.offsetWidth - 4);
+        tip.style.left = Math.max(4, x) + 'px';
+        tip.style.top = (event.clientY - box.top + 12) + 'px';
+      },
+      hide() { tip.hidden = true; },
+    };
+  }
+
+  function axisStyle(g) {
+    g.attr('font-size', null).attr('font-family', null);
+    g.selectAll('text').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)');
+    g.selectAll('line').attr('stroke', 'var(--cds-chart-grid)');
+    g.select('.domain').remove();
+  }
+
+  function measure(svg, labels) {
+    const t = svg.append('text').style('font-size', 'var(--cds-font-size-caption)');
+    let w = 0;
+    labels.forEach((s) => { t.text(s); w = Math.max(w, t.node().getComputedTextLength()); });
+    t.remove();
+    return w;
+  }
+
+  dash.draw('runs', (el) => {
+    const d = dash.data('sessions');
+    d3.select(el).selectAll('svg').remove();
+    if (d.status !== 'ok') return;
+    const rows = d.data.slice().sort((a, b) => a.order - b.order);
+    const width = el.clientWidth || 400, barH = 26, gap = 10;
+    const height = rows.length * (barH + gap) + 28;
+    const svg = d3.select(el).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`);
+    const left = measure(svg, rows.map((r) => r.label)) + 12;
+    const right = measure(svg, ['100.0%']) + 10;
+    const x = d3.scaleLinear([0, 1], [left, width - right]);
+    const y = d3.scaleBand(rows.map((r) => r.label), [0, height - 28]).paddingInner(gap / (barH + gap));
+    svg.append('g').attr('transform', `translate(0,${height - 24})`)
+      .call(d3.axisBottom(x).ticks(width < 420 ? 3 : 5, '%').tickSize(-(height - 28))).call(axisStyle)
+      .selectAll('line').attr('transform', `translate(0,${-4})`);
+    const tip = tooltip(el);
+    const g = svg.append('g');
+    g.selectAll('rect').data(rows).join('rect')
+      .attr('x', x(0)).attr('y', (r) => y(r.label)).attr('height', y.bandwidth())
+      .attr('width', (r) => x(r.pass_rate) - x(0)).attr('rx', 3)
+      .attr('fill', (r) => r.voice === 'Your voice' ? dash.colors[0] : dash.colors[1])
+      .on('pointermove', (e, r) => tip.show(e, r.label, `${pct(r.pass_rate)} of ${r.scenarios} scenarios passed`))
+      .on('pointerleave', () => tip.hide());
+    g.selectAll('.lab').data(rows).join('text').attr('class', 'lab')
+      .attr('x', left - 8).attr('y', (r) => y(r.label) + y.bandwidth() / 2).attr('dy', '0.35em').attr('text-anchor', 'end')
+      .attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text((r) => r.label);
+    g.selectAll('.val').data(rows).join('text').attr('class', 'val')
+      .attr('x', (r) => x(r.pass_rate) + 6).attr('y', (r) => y(r.label) + y.bandwidth() / 2).attr('dy', '0.35em')
+      .attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
+      .style('font-variant-numeric', 'tabular-nums').text((r) => pct(r.pass_rate));
+  });
+
+  dash.draw('modes', (el) => {
+    const d = dash.data('modes');
+    d3.select(el).selectAll('svg').remove();
+    if (d.status !== 'ok') return;
+    const rows = d.data;
+    const width = el.clientWidth || 400, groupH = 40, gap = 12;
+    const height = rows.length * (groupH + gap) + 28;
+    const svg = d3.select(el).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`);
+    const left = measure(svg, rows.map((r) => r.mode)) + 12;
+    const right = measure(svg, ['100.0%']) + 10;
+    const x = d3.scaleLinear([0, 1], [left, width - right]);
+    const y = d3.scaleBand(rows.map((r) => r.mode), [0, height - 28]).paddingInner(gap / (groupH + gap));
+    const inner = d3.scaleBand(['pass_before', 'pass_after'], [0, y.bandwidth()]).paddingInner(0.15);
+    svg.append('g').attr('transform', `translate(0,${height - 24})`)
+      .call(d3.axisBottom(x).ticks(width < 420 ? 3 : 5, '%').tickSize(-(height - 28))).call(axisStyle)
+      .selectAll('line').attr('transform', `translate(0,${-4})`);
+    const tip = tooltip(el);
+    const names = {pass_before: 'Build you tested', pass_after: "Today's code"};
+    const bars = rows.flatMap((r) => ['pass_before', 'pass_after'].map((k) => ({r, k, v: +r[k]})));
+    svg.append('g').selectAll('rect').data(bars).join('rect')
+      .attr('x', x(0)).attr('y', (b) => y(b.r.mode) + inner(b.k)).attr('height', inner.bandwidth())
+      .attr('width', (b) => x(b.v) - x(0)).attr('rx', 3)
+      .attr('fill', (b) => b.k === 'pass_after' ? dash.colors[0] : 'var(--cds-chart-muted)')
+      .on('pointermove', (e, b) => tip.show(e, `${b.r.mode}, ${b.r.scenarios} scenarios`, `${names[b.k]}: ${pct(b.v)} passed`))
+      .on('pointerleave', () => tip.hide());
+    svg.append('g').selectAll('text').data(rows).join('text')
+      .attr('x', left - 8).attr('y', (r) => y(r.mode) + y.bandwidth() / 2).attr('dy', '0.35em').attr('text-anchor', 'end')
+      .attr('fill', 'var(--color-fg)').style('font-size', 'var(--cds-font-size-caption)').text((r) => r.mode);
+    svg.append('g').selectAll('text').data(bars.filter((b) => b.k === 'pass_after')).join('text')
+      .attr('x', (b) => x(Math.max(b.v, +b.r.pass_before)) + 6).attr('y', (b) => y(b.r.mode) + y.bandwidth() / 2).attr('dy', '0.35em')
+      .attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
+      .style('font-variant-numeric', 'tabular-nums').text((b) => pct(b.v));
+  });
+
+  const metricCols = ['scenarios', 'pass_rate', 'stt_wer', 'output_wer', 'output_cer', 'strict_cer', 'novel_words',
+                      'kept_words', 'layout_ok', 'mode_ok', 'negations_ok', 'numbers_ok', 'p50_ms', 'p95_ms'];
+  dash.draw('runs-body', (tb) => {
+    const d = dash.data('sessions');
+    tb.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.slice().sort((a, b) => a.order - b.order).forEach((r) => {
+      const tr = document.createElement('tr');
+      const k = document.createElement('td'); k.textContent = r.label; tr.appendChild(k);
+      metricCols.forEach((c) => {
+        const td = document.createElement('td'); td.className = 'ife-num';
+        const v = +r[c];
+        td.textContent = c === 'scenarios' ? String(v) : c.endsWith('_ms') ? d3.format(',')(Math.round(v)) : pct(v);
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+  });
+
+  let query = '';
+  document.querySelectorAll('#ife-search').forEach((input) => {
+    input.addEventListener('input', () => { query = input.value.trim().toLowerCase(); dash.draw('scen-body'); });
+  });
+  dash.draw('scen-body', (tb) => {
+    const d = dash.data('scenarios');
+    tb.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.filter((r) => !query || Object.values(r).join(' ').toLowerCase().includes(query)).forEach((r) => {
+      const tr = document.createElement('tr');
+      const cell = (text, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = text; tr.appendChild(td); return td; };
+      cell(r.scenario, 'ife-id');
+      cell(r.said, 'ife-text');
+      cell(r.heard, 'ife-text');
+      cell(r.before, 'ife-text');
+      cell(r.after, 'ife-text');
+      [r.before_result, r.after_result].forEach((res) => {
+        const td = cell('', '');
+        const pill = document.createElement('span');
+        pill.className = 'ife-pill ' + (res === 'pass' ? 'ife-good' : 'ife-bad');
+        pill.textContent = res;
+        td.appendChild(pill);
+      });
+      tb.appendChild(tr);
+    });
+  });
+</script>

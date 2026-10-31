@@ -1,0 +1,64 @@
+parakeet       tech01                           160 ms  'Open the file app.tsx and wrap the header component in a React fragmen'
+parakeet       tech02                           169 ms  'The useState hook is returning undefined on the first render. Can you '
+parakeet       tech03                           177 ms  'Run npm install an nnpm run build, and tell me if TypeScript reports a'
+parakeet       tech04                           193 ms  "Add a Postgres migration that creates a user's table with an email col"
+parakeet       tech05                           163 ms  'In the FastAppy app, add a getEndpoint at slash health that returns st'
+parakeet       tech06                           159 ms  'Refactor the fetch user function so it uses a sync await instead of pr'
+parakeet       tech07                           163 ms  'Kubernetes keeps restarting the pod, check the Livnus probe in the dep'
+parakeet       tech08                           154 ms  'Use cload code to write unit tests with PyTest for the parser module.'
+parakeet       tech09                           180 ms  'Set the environment variable opinay API key in the.nv file, not in the'
+parakeet       tech10                           174 ms  'The GraphQL resolver is making N plus 1 queries. Add a data loader to '
+parakeet       tech11                           140 ms  'Push the branch to GitHub and open a pull request against main.'
+parakeet       tech12                           152 ms  'Convert this JSON payload into a Pydantic model with optional fields.'
+parakeet       tech13                           145 ms  'We should cache the embeddings in Redis with a TTL of 1 hour.'
+parakeet       tech14                           156 ms  'The WebSocket connection drops after 30 seconds, probably a missing pa'
+parakeet       tech15                           155 ms  'Swap the SQLite database for DuckDB in the analytics notebook.'
+parakeet       tech16                           162 ms  'Add a decur file based on Python 312 Slim and Expose Port 8000.'
+parakeet       tech17                           138 ms  'Use LangGraph to add a retry node after the tool call fails.'
+parakeet       tech18                           149 ms  'The CG event tab gets disabled by timeout, re-enable it inside the cal'
+parakeet       tech19                           143 ms  'Benchmark whisper.cpp against parakeet on the M1 Pro.'
+parakeet       tech20                           161 ms  'Rename the variable maxRetries to max retryCount everywhere in the rep'
+parakeet       fill01                           178 ms  'Um, so I think we should, uh, move the meeting to Thursday, actually n'
+parakeet       fill02                           165 ms  'Can you, like, send the report to Priya and, you know, copy the whole '
+parakeet       fill03                           150 ms  'The budget is $2,000. Sorry, I mean $2,500.'
+parakeet       fill04                           172 ms  'Okay so first we fix the login bug, second we update the docs, and thi'
+parakeet       fill05                           260 ms  'I want you to, um, look at the auth middleware, and, uh, figure out wh'
+parakeet       fill06                           183 ms  'Hey team, quick update, the deploy went out at noon, scratch that, it '
+parakeet       fill07                           267 ms  'So basically what I need is, um, a script that reads all the CSV files'
+parakeet       fill08                           157 ms  "Let's meet at the cafe on Market Street, no wait, the one on Mission S"
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files: 100%|██████████| 4/4 [00:00<00:00, 1566.65it/s]
+whisper_turbo  tech01                           704 ms  ' Open the file app.tsx and wrap the header component in a react fragme'
+whisper_turbo  tech02                           727 ms  ' The useState hook is returning undefined on the first render. Can you'
+whisper_turbo  tech03                           736 ms  ' Run npm install and then npm run build, and tell me if TypeScript rep'
+whisper_turbo  tech04                           735 ms  ' Add a Postgres migration that creates a users table with an email col'
+whisper_turbo  tech05                           731 ms  ' In the FastAPI app, add a GET endpoint at slash health that returns s'
+whisper_turbo  tech06                           725 ms  ' Refactor the fetchUser function so it uses async await instead of pro'
+whisper_turbo  tech07                           718 ms  ' Kubernetes keeps restarting the pod, check the liveness probe in the '
+whisper_turbo  tech08                           708 ms  ' Use Claude code to write unit tests with pytest for the parser module'
+whisper_turbo  tech09                           718 ms  ' Set the environment variable open a API key in the .env file, not in '
+whisper_turbo  tech10                           721 ms  ' The GraphQL resolver is making n plus 1 queries. Add a data loader to'
+whisper_turbo  tech11                           691 ms  ' Push the branch to GitHub and open a pull request against main.'
+whisper_turbo  tech12                           698 ms  ' Convert this JSON payload into a Pydantic model with optional fields.'
+whisper_turbo  tech13                           704 ms  ' We should cache the embeddings and redis with a TTL of 1 hour.'
+whisper_turbo  tech14                           700 ms  ' The WebSocket connection drops after 30 seconds. Probably a missing p'
+whisper_turbo  tech15                           705 ms  ' Swap the SQLite database for DuckDB in the Analytics Notebook.'
+whisper_turbo  tech16                           734 ms  ' Add a Dockerfile based on Python 3.12 Slim and ExposePort 8000.'
+whisper_turbo  tech17                           703 ms  ' Use LangGraph to add a retry node after the tool call fails.'
+whisper_turbo  tech18                           719 ms  ' The CG EventTap gets disabled by timeout. Re-enable it inside the cal'
+whisper_turbo  tech19                           713 ms  ' benchmarkwhisper.cpp against parakeet on the M1 Pro.'
+whisper_turbo  tech20                           711 ms  ' rename the variable maxRetrys to maxRetryCount everywhere in the repo'
+whisper_turbo  fill01                           743 ms  ' Um, so I think we should, uh, move the meeting to Thursday. Actually '
+whisper_turbo  fill02                           742 ms  ' Can you, like, send the report to Priya and, you know, copy the whole'
+whisper_turbo  fill03                           703 ms  ' The budget is $2,000. Sorry, I mean $2,500.'
+whisper_turbo  fill04                           721 ms  ' Okay so first we fix the login bug, second we update the docs, and th'
+whisper_turbo  fill05                           827 ms  ' I want you to, um, look at the auth middleware, and uh, figure out wh'
+whisper_turbo  fill06                           758 ms  ' Hey team, quick update, the deploy went out at noon, scratch that, it'
+whisper_turbo  fill07                           820 ms  ' So basically what I need is, um, a script that reads all the CSV file'
+whisper_turbo  fill08                           740 ms  " Let's meet at the cafe on Market Street. No wait, the one on Mission "
+
+| engine | set | n | WER % | identifier exact % | p50 ms | p95 ms | mean clip s | speed ×RT |
+|---|---|---|---|---|---|---|---|---|
+| parakeet +kt | tech | 20 | 12.41 | 62.5 | 160 | 181 | 4.5 | 28.1 |
+| parakeet +kt | filler | 8 | 0.0 | 100.0 | 175 | 265 | 7.1 | 37.2 |
+| whisper_turbo +kt | tech | 20 | 7.89 | 84.4 | 716 | 735 | 4.5 | 6.3 |
+| whisper_turbo +kt | filler | 8 | 0.0 | 100.0 | 742 | 825 | 7.1 | 9.4 |

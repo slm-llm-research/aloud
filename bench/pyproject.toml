@@ -1,0 +1,18 @@
+[project]
+name = "instructflow-bench"
+version = "0.1.0"
+description = "InstructFlow benchmarks and scenario eval harness"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=2.3.0",
+    "httpx>=0.28.1",
+    "jiwer>=4.0.0",
+    "mlx-lm>=0.32.2",
+    "mlx-whisper>=0.4.3",
+    "numpy>=2.5.4",
+    "parakeet-mlx>=0.5.3",
+    "python-dotenv>=1.2.4",
+    "soundfile>=0.14.0",
+    "websockets>=17.4",
+    "whisper-normalizer>=0.1.15",
+]

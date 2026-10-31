@@ -1,0 +1,28 @@
+{"id": "tech01", "text": "Open the file app dot tsx and wrap the header component in a React fragment.", "identifiers": ["app.tsx", "React"]}
+{"id": "tech02", "text": "The useState hook is returning undefined on the first render, can you check the initial value?", "identifiers": ["useState"]}
+{"id": "tech03", "text": "Run npm install and then npm run build, and tell me if TypeScript reports any errors.", "identifiers": ["npm", "TypeScript"]}
+{"id": "tech04", "text": "Add a Postgres migration that creates a users table with an email column and a created at timestamp.", "identifiers": ["Postgres"]}
+{"id": "tech05", "text": "In the FastAPI app, add a GET endpoint at slash health that returns status ok.", "identifiers": ["FastAPI", "GET"]}
+{"id": "tech06", "text": "Refactor the fetchUser function so it uses async await instead of promise chains.", "identifiers": ["fetchUser", "async", "await"]}
+{"id": "tech07", "text": "Kubernetes keeps restarting the pod, check the liveness probe in the deployment YAML.", "identifiers": ["Kubernetes", "YAML"]}
+{"id": "tech08", "text": "Use Claude Code to write unit tests with pytest for the parser module.", "identifiers": ["Claude", "pytest"]}
+{"id": "tech09", "text": "Set the environment variable OPENAI API KEY in the dot env file, not in the source code.", "identifiers": [".env"]}
+{"id": "tech10", "text": "The GraphQL resolver is making N plus one queries, add a DataLoader to batch them.", "identifiers": ["GraphQL", "DataLoader"]}
+{"id": "tech11", "text": "Push the branch to GitHub and open a pull request against main.", "identifiers": ["GitHub"]}
+{"id": "tech12", "text": "Convert this JSON payload into a Pydantic model with optional fields.", "identifiers": ["JSON", "Pydantic"]}
+{"id": "tech13", "text": "We should cache the embeddings in Redis with a TTL of one hour.", "identifiers": ["Redis", "TTL"]}
+{"id": "tech14", "text": "The WebSocket connection drops after thirty seconds, probably a missing ping frame.", "identifiers": ["WebSocket"]}
+{"id": "tech15", "text": "Swap the SQLite database for DuckDB in the analytics notebook.", "identifiers": ["SQLite", "DuckDB"]}
+{"id": "tech16", "text": "Add a Dockerfile based on python three twelve slim and expose port eight thousand.", "identifiers": ["Dockerfile"]}
+{"id": "tech17", "text": "Use LangGraph to add a retry node after the tool call fails.", "identifiers": ["LangGraph"]}
+{"id": "tech18", "text": "The CGEventTap gets disabled by timeout, re-enable it inside the callback.", "identifiers": ["CGEventTap"]}
+{"id": "tech19", "text": "Benchmark whisper dot cpp against Parakeet on the M1 Pro.", "identifiers": ["whisper.cpp", "Parakeet"]}
+{"id": "tech20", "text": "Rename the variable max retries to maxRetryCount everywhere in the repo.", "identifiers": ["maxRetryCount"]}
+{"id": "fill01", "text": "Um, so I think we should, uh, move the meeting to Thursday, actually no, make that Friday at three.", "identifiers": []}
+{"id": "fill02", "text": "Can you, like, send the report to Priya and, you know, copy the whole team on it?", "identifiers": ["Priya"]}
+{"id": "fill03", "text": "The budget is two thousand dollars, sorry, I mean two thousand five hundred dollars.", "identifiers": []}
+{"id": "fill04", "text": "Okay so first we fix the login bug, second we update the docs, and third we ship the release.", "identifiers": []}
+{"id": "fill05", "text": "I want you to, um, look at the auth middleware, and uh, figure out why the token refresh is failing, and then, like, write a fix with tests, but don't touch the database layer.", "identifiers": []}
+{"id": "fill06", "text": "Hey team, quick update, the deploy went out at noon, scratch that, it went out at one, and everything looks stable.", "identifiers": []}
+{"id": "fill07", "text": "So basically what I need is, um, a script that reads all the CSV files in the downloads folder, merges them, and, uh, writes one parquet file, and it should skip files that are empty.", "identifiers": ["CSV", "parquet"]}
+{"id": "fill08", "text": "Let's meet at the cafe on Market Street, no wait, the one on Mission Street.", "identifiers": ["Market Street", "Mission Street"]}

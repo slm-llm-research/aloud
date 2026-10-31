@@ -1,0 +1,44 @@
+[
+  {
+    "engine": "parakeet",
+    "set": "libri",
+    "n": 3,
+    "errors": 0,
+    "wer": 2.53,
+    "id_exact_pct": null,
+    "lat_p50_ms": 292,
+    "lat_p95_ms": 407,
+    "mean_clip_s": 10.6,
+    "rtf_x": 35.8,
+    "load_s": 99.5,
+    "keyterms": false
+  },
+  {
+    "engine": "parakeet",
+    "set": "tech",
+    "n": 3,
+    "errors": 0,
+    "wer": 8.51,
+    "id_exact_pct": 100.0,
+    "lat_p50_ms": 171,
+    "lat_p95_ms": 178,
+    "mean_clip_s": 5.0,
+    "rtf_x": 28.6,
+    "load_s": 99.5,
+    "keyterms": false
+  },
+  {
+    "engine": "parakeet",
+    "set": "filler",
+    "n": 3,
+    "errors": 0,
+    "wer": 0.0,
+    "id_exact_pct": 100.0,
+    "lat_p50_ms": 172,
+    "lat_p95_ms": 185,
+    "mean_clip_s": 5.6,
+    "rtf_x": 32.6,
+    "load_s": 99.5,
+    "keyterms": false
+  }
+]

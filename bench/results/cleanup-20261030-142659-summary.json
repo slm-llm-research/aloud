@@ -1,0 +1,38 @@
+[
+  {
+    "engine": "groq_gptoss20b",
+    "mode": "cleanup",
+    "n": 9,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 179,
+    "total_p50_ms": 181,
+    "total_p95_ms": 205
+  },
+  {
+    "engine": "groq_gptoss20b",
+    "mode": "coding",
+    "n": 4,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 136,
+    "total_p50_ms": 294,
+    "total_p95_ms": 481
+  },
+  {
+    "engine": "haiku55",
+    "mode": "cleanup",
+    "n": 10,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 580,
+    "total_p50_ms": 802,
+    "total_p95_ms": 991
+  },
+  {
+    "engine": "haiku55",
+    "mode": "coding",
+    "n": 4,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 550,
+    "total_p50_ms": 996,
+    "total_p95_ms": 1132
+  }
+]

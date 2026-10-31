@@ -1,0 +1,62 @@
+[
+  {
+    "engine": "haiku55",
+    "mode": "cleanup",
+    "n": 30,
+    "empty": 0,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 522,
+    "total_p50_ms": 768,
+    "total_p95_ms": 1198
+  },
+  {
+    "engine": "haiku55",
+    "mode": "coding",
+    "n": 12,
+    "empty": 0,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 634,
+    "total_p50_ms": 1166,
+    "total_p95_ms": 1610
+  },
+  {
+    "engine": "groq_gptoss20b",
+    "mode": "cleanup",
+    "n": 30,
+    "empty": 3,
+    "pass_pct": 90.0,
+    "ttft_p50_ms": 161,
+    "total_p50_ms": 180,
+    "total_p95_ms": 643
+  },
+  {
+    "engine": "groq_gptoss20b",
+    "mode": "coding",
+    "n": 12,
+    "empty": 0,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 134,
+    "total_p50_ms": 210,
+    "total_p95_ms": 512
+  },
+  {
+    "engine": "groq_gptoss120b",
+    "mode": "cleanup",
+    "n": 30,
+    "empty": 0,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 214,
+    "total_p50_ms": 254,
+    "total_p95_ms": 571
+  },
+  {
+    "engine": "groq_gptoss120b",
+    "mode": "coding",
+    "n": 12,
+    "empty": 0,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 192,
+    "total_p50_ms": 424,
+    "total_p95_ms": 773
+  }
+]

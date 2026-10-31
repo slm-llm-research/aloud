@@ -1,0 +1,38 @@
+[
+  {
+    "engine": "qwen3_1.7b",
+    "mode": "cleanup",
+    "n": 30,
+    "pass_pct": 70.0,
+    "ttft_p50_ms": 296,
+    "total_p50_ms": 428,
+    "total_p95_ms": 510
+  },
+  {
+    "engine": "qwen3_1.7b",
+    "mode": "coding",
+    "n": 12,
+    "pass_pct": 75.0,
+    "ttft_p50_ms": 323,
+    "total_p50_ms": 570,
+    "total_p95_ms": 780
+  },
+  {
+    "engine": "qwen3_4b",
+    "mode": "cleanup",
+    "n": 30,
+    "pass_pct": 70.0,
+    "ttft_p50_ms": 726,
+    "total_p50_ms": 1014,
+    "total_p95_ms": 2985
+  },
+  {
+    "engine": "qwen3_4b",
+    "mode": "coding",
+    "n": 12,
+    "pass_pct": 100.0,
+    "ttft_p50_ms": 844,
+    "total_p50_ms": 3093,
+    "total_p95_ms": 4661
+  }
+]

@@ -1,0 +1,1022 @@
+{
+  "session": "replay-20261031",
+  "overall": {
+    "n": 37,
+    "pass_rate": 0.7297297297297297,
+    "stt_wer": 0.04526748971193416,
+    "stt_cer": 0.05499054986669817,
+    "out_wer": 0.10022271714922049,
+    "out_cer": 0.04772514703495582,
+    "strict_cer": 0.09456871604821021,
+    "novel_rate": 0.04377979377979378,
+    "recall": 0.936961401961402,
+    "layout_ok": 0.9459459459459459,
+    "mode_ok": 1.0,
+    "negations_ok": 0.972972972972973,
+    "numbers_ok": 1.0,
+    "latency_p50_ms": 424,
+    "latency_p95_ms": 607,
+    "cleanup_via": {
+      "groq": 23,
+      "skipped": 14
+    }
+  },
+  "by_mode": {
+    "prose": {
+      "n": 9,
+      "pass_rate": 1.0,
+      "stt_wer": 0.016666666666666666,
+      "stt_cer": 0.013545514824287203,
+      "out_wer": 0.02702702702702703,
+      "out_cer": 0.012674055129298097,
+      "strict_cer": 0.060201903477939876,
+      "novel_rate": 0.0,
+      "recall": 1.0,
+      "layout_ok": 1.0,
+      "mode_ok": 1.0,
+      "negations_ok": 1.0,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 455,
+      "latency_p95_ms": 951,
+      "cleanup_via": {
+        "groq": 7,
+        "skipped": 2
+      }
+    },
+    "list": {
+      "n": 5,
+      "pass_rate": 0.6,
+      "stt_wer": 0.01639344262295082,
+      "stt_cer": 0.015384615384615385,
+      "out_wer": 0.14893617021276595,
+      "out_cer": 0.09019607843137255,
+      "strict_cer": 0.14418079096045197,
+      "novel_rate": 0.0,
+      "recall": 0.975,
+      "layout_ok": 0.8,
+      "mode_ok": 1.0,
+      "negations_ok": 0.8,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 482,
+      "latency_p95_ms": 524,
+      "cleanup_via": {
+        "groq": 5
+      }
+    },
+    "email": {
+      "n": 5,
+      "pass_rate": 0.8,
+      "stt_wer": 0.02564102564102564,
+      "stt_cer": 0.0040653728294177734,
+      "out_wer": 0.04,
+      "out_cer": 0.00863016973464021,
+      "strict_cer": 0.025389213775178686,
+      "novel_rate": 0.07525252525252525,
+      "recall": 0.9232323232323232,
+      "layout_ok": 1.0,
+      "mode_ok": 1.0,
+      "negations_ok": 1.0,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 559,
+      "latency_p95_ms": 991,
+      "cleanup_via": {
+        "groq": 4,
+        "skipped": 1
+      }
+    },
+    "chat": {
+      "n": 5,
+      "pass_rate": 0.6,
+      "stt_wer": 0.0851063829787234,
+      "stt_cer": 0.038717948717948716,
+      "out_wer": 0.0851063829787234,
+      "out_cer": 0.038717948717948716,
+      "strict_cer": 0.046986521405126054,
+      "novel_rate": 0.08333333333333333,
+      "recall": 0.9166666666666666,
+      "layout_ok": 1.0,
+      "mode_ok": 1.0,
+      "negations_ok": 1.0,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 256,
+      "latency_p95_ms": 473,
+      "cleanup_via": {
+        "skipped": 3,
+        "groq": 2
+      }
+    },
+    "aiChat": {
+      "n": 3,
+      "pass_rate": 1.0,
+      "stt_wer": 0.0,
+      "stt_cer": 0.0,
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "recall": 1.0,
+      "layout_ok": 1.0,
+      "mode_ok": 1.0,
+      "negations_ok": 1.0,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 321,
+      "latency_p95_ms": 362,
+      "cleanup_via": {
+        "skipped": 3
+      }
+    },
+    "codingAgent": {
+      "n": 6,
+      "pass_rate": 0.6666666666666666,
+      "stt_wer": 0.03007518796992481,
+      "stt_cer": 0.006573079458641951,
+      "out_wer": 0.18604651162790697,
+      "out_cer": 0.08320347088708718,
+      "strict_cer": 0.09894558350155072,
+      "novel_rate": 0.012820512820512822,
+      "recall": 0.9738461538461538,
+      "layout_ok": 0.8333333333333334,
+      "mode_ok": 1.0,
+      "negations_ok": 1.0,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 389,
+      "latency_p95_ms": 607,
+      "cleanup_via": {
+        "groq": 4,
+        "skipped": 2
+      }
+    },
+    "terminal": {
+      "n": 4,
+      "pass_rate": 0.25,
+      "stt_wer": 0.45,
+      "stt_cer": 0.39561563755937157,
+      "out_wer": 0.3076923076923077,
+      "out_cer": 0.11620553359683794,
+      "strict_cer": 0.3201923076923077,
+      "novel_rate": 0.1875,
+      "recall": 0.6875,
+      "layout_ok": 1.0,
+      "mode_ok": 1.0,
+      "negations_ok": 1.0,
+      "numbers_ok": 1.0,
+      "latency_p50_ms": 376,
+      "latency_p95_ms": 514,
+      "cleanup_via": {
+        "groq": 1,
+        "skipped": 3
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "id": "prose-correction",
+      "mode": "prose",
+      "out_wer": 0.125,
+      "out_cer": 0.07058823529411765,
+      "strict_cer": 0.06976744186046512,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "prose-negation",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "prose-number-correction",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.42857142857142855,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "prose-thinking",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "prose-instruction-not-executed",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "prose-question",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "prose-stutter",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.1,
+      "stt_cer": 0.0784313725490196
+    },
+    {
+      "id": "prose-names",
+      "mode": "prose",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "list-grocery",
+      "mode": "list",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.05084745762711865,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "list",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "list-cue",
+      "mode": "list",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "list",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "list-packing",
+      "mode": "list",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "list",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "list-correction",
+      "mode": "list",
+      "out_wer": 0.46153846153846156,
+      "out_cer": 0.36764705882352944,
+      "strict_cer": 0.4666666666666667,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [
+          "fix the bike"
+        ],
+        "layout": false,
+        "negations": false,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "list",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "email-checkin",
+      "mode": "email",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "email",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "email-no-greeting",
+      "mode": "email",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.08641975308641975,
+      "novel_rate": 0.08333333333333333,
+      "novel": [
+        "00"
+      ],
+      "recall": 0.9090909090909091,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "email",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "email-correction",
+      "mode": "email",
+      "out_wer": 0.125,
+      "out_cer": 0.031914893617021274,
+      "strict_cer": 0.03,
+      "novel_rate": 0.18181818181818182,
+      "novel": [
+        "12",
+        "shekar"
+      ],
+      "recall": 0.8181818181818182,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "email",
+      "stt_wer": 0.05263157894736842,
+      "stt_cer": 0.00909090909090909
+    },
+    {
+      "id": "email-short",
+      "mode": "email",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "email",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "chat-lol",
+      "mode": "chat",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "chat",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "chat-omg",
+      "mode": "chat",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.05405405405405406,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "chat",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "chat-sorry-not-correction",
+      "mode": "chat",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "chat",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "chat-btw",
+      "mode": "chat",
+      "out_wer": 0.21428571428571427,
+      "out_cer": 0.11666666666666667,
+      "strict_cer": 0.1111111111111111,
+      "novel_rate": 0.16666666666666666,
+      "novel": [
+        "way"
+      ],
+      "recall": 0.8333333333333334,
+      "checks": {
+        "must": [
+          "btw"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "chat",
+      "stt_wer": 0.21428571428571427,
+      "stt_cer": 0.11666666666666667
+    },
+    {
+      "id": "ai-question",
+      "mode": "aiChat",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "aiChat",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "ai-instruction",
+      "mode": "aiChat",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "aiChat",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "ai-haiku",
+      "mode": "aiChat",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "aiChat",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "code-thinking",
+      "mode": "codingAgent",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "codingAgent",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "code-multi-ask",
+      "mode": "codingAgent",
+      "out_wer": 0.36,
+      "out_cer": 0.3424124513618677,
+      "strict_cer": 0.3612167300380228,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 0.92,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "codingAgent",
+      "stt_wer": 0.06,
+      "stt_cer": 0.02074688796680498
+    },
+    {
+      "id": "code-as-a-prompt",
+      "mode": "codingAgent",
+      "out_wer": 0.0625,
+      "out_cer": 0.0989010989010989,
+      "strict_cer": 0.1368421052631579,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": false,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "codingAgent",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "code-short-question",
+      "mode": "codingAgent",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.0,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "codingAgent",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "code-identifiers",
+      "mode": "codingAgent",
+      "out_wer": 0.5,
+      "out_cer": 0.0392156862745098,
+      "strict_cer": 0.07692307692307693,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "codingAgent",
+      "stt_wer": 0.0,
+      "stt_cer": 0.0
+    },
+    {
+      "id": "shell-git",
+      "mode": "terminal",
+      "out_wer": 0.2,
+      "out_cer": 0.17391304347826086,
+      "strict_cer": 0.16666666666666666,
+      "novel_rate": 0.25,
+      "novel": [
+        "off"
+      ],
+      "recall": 0.75,
+      "checks": {
+        "must": [
+          "git checkout -b fix/auth"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "terminal",
+      "stt_wer": 0.2857142857142857,
+      "stt_cer": 0.14705882352941177
+    },
+    {
+      "id": "shell-ls",
+      "mode": "terminal",
+      "out_wer": 0.5,
+      "out_cer": 0.2,
+      "strict_cer": 0.8333333333333334,
+      "novel_rate": 0.5,
+      "novel": [
+        "law"
+      ],
+      "recall": 0.5,
+      "checks": {
+        "must": [
+          "ls -la"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "terminal",
+      "stt_wer": 0.6666666666666666,
+      "stt_cer": 0.6
+    },
+    {
+      "id": "shell-cd",
+      "mode": "terminal",
+      "out_wer": 1.0,
+      "out_cer": 0.09090909090909091,
+      "strict_cer": 0.23076923076923078,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 0.5,
+      "checks": {
+        "must": [
+          "cd ~/projects"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "terminal",
+      "stt_wer": 0.75,
+      "stt_cer": 0.4782608695652174
+    },
+    {
+      "id": "shell-npm",
+      "mode": "terminal",
+      "out_wer": 0.0,
+      "out_cer": 0.0,
+      "strict_cer": 0.05,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "terminal",
+      "stt_wer": 0.3333333333333333,
+      "stt_cer": 0.35714285714285715
+    },
+    {
+      "id": "prose-negation-noise",
+      "mode": "prose",
+      "out_wer": 0.07142857142857142,
+      "out_cer": 0.043478260869565216,
+      "strict_cer": 0.043478260869565216,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 1.0,
+      "checks": {
+        "must": [],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": true,
+      "mode_seen": "prose",
+      "stt_wer": 0.07142857142857142,
+      "stt_cer": 0.043478260869565216
+    },
+    {
+      "id": "email-checkin-noise",
+      "mode": "email",
+      "out_wer": 0.058823529411764705,
+      "out_cer": 0.011235955056179775,
+      "strict_cer": 0.010526315789473684,
+      "novel_rate": 0.1111111111111111,
+      "novel": [
+        "shekar"
+      ],
+      "recall": 0.8888888888888888,
+      "checks": {
+        "must": [
+          "Shekhar"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "email",
+      "stt_wer": 0.058823529411764705,
+      "stt_cer": 0.011235955056179775
+    },
+    {
+      "id": "chat-lol-noise",
+      "mode": "chat",
+      "out_wer": 0.1,
+      "out_cer": 0.07692307692307693,
+      "strict_cer": 0.06976744186046512,
+      "novel_rate": 0.25,
+      "novel": [
+        "lmao"
+      ],
+      "recall": 0.75,
+      "checks": {
+        "must": [
+          "lol"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "chat",
+      "stt_wer": 0.1,
+      "stt_cer": 0.07692307692307693
+    },
+    {
+      "id": "code-thinking-noise",
+      "mode": "codingAgent",
+      "out_wer": 0.043478260869565216,
+      "out_cer": 0.018691588785046728,
+      "strict_cer": 0.018691588785046728,
+      "novel_rate": 0.07692307692307693,
+      "novel": [
+        "mod"
+      ],
+      "recall": 0.9230769230769231,
+      "checks": {
+        "must": [
+          "mock server"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "codingAgent",
+      "stt_wer": 0.043478260869565216,
+      "stt_cer": 0.018691588785046728
+    },
+    {
+      "id": "list-grocery-noise",
+      "mode": "list",
+      "out_wer": 0.1111111111111111,
+      "out_cer": 0.08333333333333333,
+      "strict_cer": 0.2033898305084746,
+      "novel_rate": 0.0,
+      "novel": [],
+      "recall": 0.875,
+      "checks": {
+        "must": [
+          "eggs"
+        ],
+        "must_not": [],
+        "layout": true,
+        "negations": true,
+        "numbers": true,
+        "mode": true
+      },
+      "passed": false,
+      "mode_seen": "list",
+      "stt_wer": 0.1,
+      "stt_cer": 0.07692307692307693
+    }
+  ]
+}

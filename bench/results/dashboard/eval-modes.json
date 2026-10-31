@@ -1,0 +1,50 @@
+[
+ {
+  "mode": "AI chat",
+  "scenarios": 3,
+  "pass_before": 1.0,
+  "pass_after": 1.0,
+  "output_wer_before": 0.0,
+  "output_wer_after": 0.0
+ },
+ {
+  "mode": "Chat",
+  "scenarios": 4,
+  "pass_before": 0.75,
+  "pass_after": 0.75,
+  "output_wer_before": 0.0811,
+  "output_wer_after": 0.0811
+ },
+ {
+  "mode": "Coding agent",
+  "scenarios": 4,
+  "pass_before": 0.75,
+  "pass_after": 0.75,
+  "output_wer_before": 0.3133,
+  "output_wer_after": 0.3012
+ },
+ {
+  "mode": "Email",
+  "scenarios": 4,
+  "pass_before": 1.0,
+  "pass_after": 1.0,
+  "output_wer_before": 0.0172,
+  "output_wer_after": 0.0172
+ },
+ {
+  "mode": "Lists",
+  "scenarios": 4,
+  "pass_before": 0.75,
+  "pass_after": 1.0,
+  "output_wer_before": 0.1842,
+  "output_wer_after": 0.1316
+ },
+ {
+  "mode": "Notes",
+  "scenarios": 8,
+  "pass_before": 0.875,
+  "pass_after": 1.0,
+  "output_wer_before": 0.0309,
+  "output_wer_after": 0.0103
+ }
+]

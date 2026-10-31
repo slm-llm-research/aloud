@@ -1,0 +1,10 @@
+InstructFlow
+Copyright 2026 Shekhar Tanwar
+
+This product includes software developed by Shekhar Tanwar and contributors
+(https://github.com/slm-llm-research/instructflow).
+
+Third-party components, each under its own license:
+- FluidAudio (https://github.com/FluidInference/FluidAudio), used for on-device speech recognition.
+- NVIDIA Parakeet TDT 0.6B v2 model weights, licensed under CC-BY-4.0, downloaded at first launch.
+- Node.js dependencies of agentd (see agentd/package.json) and Python dependencies of bench (see bench/pyproject.toml).
