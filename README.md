@@ -21,6 +21,25 @@ developers who spend their day talking to Claude Code, Codex and Cursor.
 | **Claude Code**: a 40-word request that asks for several things | Goal / Context / Constraints sections, in your own sentences, file names in `backticks` |
 | **A shell prompt**: "git checkout dash b fix slash auth" | `git checkout -b fix/auth` *(typed, not run)* |
 
+## Results
+
+**Measured, not claimed.** Every scenario is spoken into a real app, and the harness checks what reached the
+screen against what was said. Full numbers: [**BENCHMARKS.md**](BENCHMARKS.md) ·
+interactive page: [**slm-llm-research.github.io/instructflow/results**](https://slm-llm-research.github.io/instructflow/results/)
+
+| | Before | After |
+|---|---|---|
+| **Real voice**, 27 scenarios in Notes, Gmail, WhatsApp, Claude desktop, Claude Code (same transcripts, before vs after the fixes) | 85.2% passed | **92.6% passed** |
+| **Synthetic voice**, all 37 scenarios incl. background noise (text-to-speech → live speech-to-text → the app's cleanup) | 73.0% passed | **83.8% passed** |
+| Negations ("not", "don't") kept, real voice | 100.0% | **100.0%** |
+| Layout right for the app (lists, email lines, prompt sections), synthetic | 94.6% | **100.0%** |
+| Speech-to-text word error rate, real voice | 2.7% | 2.7% |
+| Key release to text typed, median | 413 ms | 375 ms |
+
+By app, real voice, current code: Notes 100.0% · Gmail (Chrome) 100.0% · WhatsApp 75.0% · Claude Code (Terminal) 75.0% · Claude desktop 100.0%.
+
+[![InstructFlow benchmark page: before and after pass rates, every metric, by app and by noise](docs/results/screenshot.png)](https://slm-llm-research.github.io/instructflow/results/)
+
 ## Contents
 
 - [How it works](#how-it-works)
@@ -30,6 +49,7 @@ developers who spend their day talking to Claude Code, Codex and Cursor.
 - [How the text is cleaned](#how-the-text-is-cleaned)
 - [Task mode: the local agent](#task-mode-the-local-agent)
 - [Privacy and where your data goes](#privacy-and-where-your-data-goes)
+- [Results](#results)
 - [Evals: measured, published accuracy](#evals-measured-published-accuracy)
 - [Development](#development)
 - [Project layout](#project-layout)
@@ -290,7 +310,7 @@ uv run python scenario_eval.py compare SESSION1 SESSION2    # before/after table
 | **Kept-word recall** | Your words that made it to the screen |
 | **Latency p50 / p95** | Key release to text typed |
 
-Results from 2026-10-31 (full reports in [`bench/results/`](bench/results/)):
+Results from 2026-10-31. [BENCHMARKS.md](BENCHMARKS.md) breaks them down by app, mode and noise, scenario by scenario; raw reports are in [`bench/results/`](bench/results/). `uv run python export_results.py` regenerates BENCHMARKS.md and the results page from the saved sessions.
 
 | Run | Scenarios | Pass | STT WER | Output WER | Strict CER | Negations kept | p50 / p95 |
 |---|---|---|---|---|---|---|---|
@@ -356,6 +376,8 @@ app/                     macOS menu-bar app (Swift 6.1, SwiftPM, no Xcode projec
   scripts/               bundle.sh, make-signing-cert.sh
 agentd/                  local agent daemon (Node 22, TypeScript, Anthropic SDK)
 bench/                   speech-to-text and cleanup benchmarks, scenario eval harness, results
+docs/results/            the benchmark page (GitHub Pages), its data and screenshot
+BENCHMARKS.md            before/after results by app, mode and noise
 research/                design research: product teardowns, model options, macOS integration, cleanup design
 PLAN.md, PLAN-SIMPLE.md  architecture and milestone plans
 ```
