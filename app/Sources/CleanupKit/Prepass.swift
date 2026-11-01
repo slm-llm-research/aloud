@@ -61,21 +61,10 @@ public enum Prepass {
         if hasRepeatedWord(text) { reasons.append("repeated word") }
         if wordCount(text) > maxWordsWithoutLLM { reasons.append("long") }
         if let last = text.last, !".?!:;\"')".contains(last) { reasons.append("no final punctuation") }
-        // Several comma-separated items: the model decides whether it's a list.
-        if looksEnumerated(text) { reasons.append("items") }
 
         // Hesitations alone are fully handled here; everything else benefits from the LLM.
         let needsLLM = reasons.contains { $0 != "hesitations" }
         return Result(text: text, needsLLM: needsLLM, reasons: reasons)
-    }
-
-    /// Three or more comma-separated items in one sentence ("eggs, bacon, milk and bread"), or steps
-    /// ("first ... then ... finally").
-    static func looksEnumerated(_ s: String) -> Bool {
-        let sentences = s.split(whereSeparator: { ".!?\n".contains($0) })
-        if sentences.contains(where: { $0.filter { $0 == "," }.count >= 2 }) { return true }
-        let lower = s.lowercased()
-        return lower.contains("first") && lower.contains("then") && (lower.contains("finally") || lower.contains("after that"))
     }
 
     /// A self-correction or filler phrase, ignoring the punctuation speech-to-text puts inside it

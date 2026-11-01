@@ -373,7 +373,8 @@ struct FieldTestTests {
 
     @Test func listThatCameBackAsAParagraphGoesToTheNextModel() async {
         let groq = FakeLLM(name: "groq", reply: "<edited>To-do list: email the landlord. Book the bike service and water the plants.</edited>")
-        let haiku = FakeLLM(name: "haiku", reply: "<edited>To-do list:\n- Email the landlord\n- Book the bike service\n- Water the plants</edited>")
+        // The correction ("fix the bike, no wait, book the bike service") is reported, as the prompt asks.
+        let haiku = FakeLLM(name: "haiku", reply: "<layout>list</layout>\n<edited>To-do list:\n- Email the landlord\n- Book the bike service\n- Water the plants</edited>\n<correction>fix the bike → book the bike service</correction>")
         let r = await Cleaner(chain: [.init(groq, timeout: 1), .init(haiku, timeout: 1)])
             .clean("To-do list, email the landlord, fix the bike. No, wait, book the bike service and water the plants.")
         #expect(r.via == "haiku")
@@ -548,24 +549,6 @@ struct PromptOrFreeSpeechTests {
         #expect(r.via == "fallback")
     }
 
-    @Test func instructionsAreToldApartFromFreeSpeech() {
-        #expect(Cleaner.looksLikeInstructions("I want you to, um, look at the auth middleware and figure out why the token refresh is failing, and then write a fix with tests, but don't touch the database layer."))
-        #expect(Cleaner.looksLikeInstructions("can you refactor fetch user to use async await, and make sure the error handling still logs to Sentry, don't change the public API"))
-        #expect(!Cleaner.looksLikeInstructions("so I tried the new build this morning and the login felt a lot faster but the settings page still flickers when you switch tabs, maybe we can look at it later"))
-        #expect(!Cleaner.looksLikeInstructions("I used Aloud and then interacted with Claude CLI, and I was testing two modes, one where I gave it a set of instructions and then free speech"))
-        #expect(!Cleaner.looksLikeInstructions("okay so the hotkey thing, when I double tap the function key it should latch the mic open, and then a single tap closes it"))
-        #expect(!Cleaner.looksLikeInstructions("fix the login redirect"))  // too short to need a layout
-    }
-
-    /// The faster model kept a clear request as sentences: the app lays them out.
-    @Test func clearRequestKeptAsSentencesIsLaidOut() async {
-        let said = "I want you to look at the auth middleware and figure out why the token refresh is failing, and then write a fix with tests, but don't touch the database layer."
-        let llm = FakeLLM(name: "groq", reply: "<edited>\(said)</edited>")
-        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean(said, context: AppContext(bundleID: "com.apple.Terminal", windowTitle: "✳ claude"))
-        #expect(r.text == "Goal: I want you to look at the auth middleware and figure out why the token refresh is failing, and then write a fix with tests.\nConstraints: Don't touch the database layer.")
-        #expect(r.restructured)
-    }
-
     @Test func repairLeavesNamesTheRecognizerChose() {
         let r = RecognitionRepair.apply([.init(heard: "Aloud", meant: "Claude")], to: "I used Aloud, and then interacted with Claude CLI.")
         #expect(r.text == "I used Aloud, and then interacted with Claude CLI.")
@@ -586,11 +569,10 @@ struct PromptOrFreeSpeechTests {
 
 @Suite("List or sentences in other apps")
 struct LayoutChoiceTests {
-    @Test func itemsSendTheTextToTheModel() {
-        #expect(Prepass.looksEnumerated("Passport, charger, sunscreen and boots."))
-        #expect(Prepass.looksEnumerated("First install node, then run npm install, and finally start the server."))
-        #expect(!Prepass.looksEnumerated("Can you grab milk and bread on your way home?"))
-        #expect(Prepass.run("Passport, charger, sunscreen and boots.").needsLLM)
+    @Test func shortTextReachesTheModel() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>Passport, charger and boots.</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean("Passport, charger and boots.", context: AppContext(bundleID: "com.apple.Notes"))
+        #expect(r.via == "groq")
     }
 
     /// A list chosen in Notes is checked with the structure rules (it drops "and"), and shaped.
@@ -614,5 +596,43 @@ struct GoalAsksTests {
         #expect(OutputHygiene.splitGoalAsks(one) == one)
         let has = "Goal: Check the service, add a lint step.\nTasks:\n- Scan imports."
         #expect(OutputHygiene.splitGoalAsks(has) == has)
+    }
+}
+
+/// From a real WhatsApp dictation: "Let's do 7. No, let's do 8." Both models applied the correction
+/// and the guardrail rejected them for dropping "7" and "no", so the uncorrected text was typed.
+@Suite("Model-reported corrections")
+struct ReportedCorrectionTests {
+    static let heard = "Hey, are we on for dinner tonight? Let's do 7:00. No, um, let's do 8:00."
+
+    @Test func theReportIsReadFromTheReply() {
+        let (rest, cs) = OutputHygiene.extractCorrections("<edited>Let's do 8.</edited>\n<correction>7:00 → 8:00</correction>")
+        #expect(rest.trimmingCharacters(in: .whitespacesAndNewlines) == "<edited>Let's do 8.</edited>")
+        #expect(cs.count == 1 && cs[0].from == "7:00" && cs[0].to == "8:00")
+    }
+
+    /// From a real WhatsApp dictation: the model applied the correction and, without a way to say
+    /// so, was rejected for dropping "7" and "no".
+    @Test func aReportedCorrectionIsAccepted() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>Hey, are we on for dinner tonight? Let's do 8.</edited>\n<correction>7:00 → 8:00</correction>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean(Self.heard, context: AppContext(bundleID: "net.whatsapp.WhatsApp"))
+        #expect(r.via == "groq", "\(r.notes)")
+        #expect(r.text == "Hey, are we on for dinner tonight? Let's do 8.")
+        #expect(r.notes.contains("groq correction: 7:00 -> 8:00"))
+    }
+
+    @Test func aReportThatDoesNotCheckOutIsNotTrusted() {
+        let input = "Can you get me something from the store? Pizza. No, pastry."
+        // Replaced words still in the output, a replacement nobody said, or nothing reported.
+        #expect(!Guardrail.verifies([("pizza", "pastry")], input: input, output: "Can you get me pizza and pastry?"))
+        #expect(!Guardrail.verifies([("pizza", "cake")], input: input, output: "Can you get me cake?"))
+        #expect(!Guardrail.verifies([], input: input, output: "Can you get me pastry?"))
+        #expect(Guardrail.verifies([("Pizza", "pastry")], input: input, output: "Can you get me a pastry from the store?"))
+        // An extension replaces nothing, so it checks out as long as both parts were said.
+        #expect(Guardrail.verifies([("the team", "the whole design team")], input: "share it with the team, the whole design team",
+                                   output: "Share it with the whole design team."))
+        // A report can't excuse dropping other words: "store" is gone too, and that's not a correction.
+        #expect(Guardrail.check(input: "Please buy the tickets for the concert in Berlin tomorrow. Pizza. No, pastry.",
+                                output: "Please buy pastry.", level: .light, corrections: [("Pizza", "pastry")]) != .accept)
     }
 }

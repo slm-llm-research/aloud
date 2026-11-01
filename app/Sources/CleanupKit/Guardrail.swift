@@ -48,7 +48,8 @@ public enum Guardrail {
     /// speaker's words (content-word recall and precision), every negation and number, and must not
     /// fuse a stutter into a new word. `outside` is text the model wrote outside its <edited> tags.
     public static func check(input: String, output: String, level: EditLevel, terms: [String] = [],
-                             outside: String = "") -> Verdict {
+                             outside: String = "", corrections: [(from: String, to: String)] = [],
+                             markers: Bool = true) -> Verdict {
         let out = output.trimmingCharacters(in: .whitespacesAndNewlines)
         if out.isEmpty { return .reject("empty") }
         if !outside.isEmpty { return .reject("answered, not edited") }
@@ -57,7 +58,9 @@ public enum Guardrail {
         }
         if out.contains("```") && !input.contains("```") { return .reject("contains code") }
 
-        let inWords = Prepass.wordCount(input)
+        // Spoken symbols collapse in a command ("cd slash var slash tmp" -> "cd /var/tmp"): not lost words.
+        let inWords = level == .verbatim
+            ? Fidelity.tokens(input).filter { !Fidelity.symbolWords.contains($0) }.count : Prepass.wordCount(input)
         let outWords = Prepass.wordCount(out)
         let structure = level == .structure
         // Structure only adds labels and bullets, so it may grow a little more than light cleanup.
@@ -67,13 +70,23 @@ public enum Guardrail {
             return .reject("shrank \(inWords)->\(outWords) words")
         }
 
-        let corrected = Prepass.hasCorrectionMarker(input)
+        // The model decides what was a self-correction and reports it; the check only confirms the
+        // report against the transcript before allowing the dropped words.
+        // `markers`: also loosen the checks when a fixed cue word ("sorry", "actually") appears, even with no
+        // reported correction. Off, only a verified report counts (and then the normal allowance applies,
+        // with the corrected words excused).
+        let verified = verifies(corrections, input: input, output: out)
+        let corrected = (markers && Prepass.hasCorrectionMarker(input)) || verified
         let f = Fidelity.compare(input: input, output: out, allowed: terms)
         // Laying out a prompt drops framing words ("so I want you to", "keep going until" -> "Done when:").
-        let allowedMissing = corrected ? max(3, f.inputCount / 4)
+        let allowedMissing = corrected && (markers || !verified) ? max(3, f.inputCount / 4)
             : structure ? max(4, f.inputCount / 5) : max(2, f.inputCount * 12 / 100)
-        if f.missing.count > allowedMissing {
-            return .reject("dropped words: \(f.missing.prefix(5).joined(separator: ", "))")
+        // Words a verified correction took back ("4:30", "no wait") are meant to go.
+        let excused = verified
+            ? Set(corrections.flatMap { Fidelity.tokens($0.from) + Fidelity.tokens($0.to) }).union(correctionCues) : []
+        let missing = f.missing.filter { !excused.contains($0) }
+        if missing.count > allowedMissing {
+            return .reject("dropped words: \(missing.prefix(5).joined(separator: ", "))")
         }
         if f.novel.count > max(2, f.outputCount * 12 / 100) {
             return .reject("new words: \(f.novel.prefix(5).joined(separator: ", "))")
@@ -86,6 +99,32 @@ public enum Guardrail {
             return .reject("fused stutter: \(fused)")
         }
         return replyCheck(input: input, output: out)
+    }
+
+    /// The words that introduce a self-correction, dropped with it.
+    static let correctionCues: Set<String> = ["no", "wait", "sorry", "actually", "mean", "rather", "make", "that",
+                                              "scratch", "or", "i", "00"]
+
+    /// A reported correction is real when both what was replaced and what replaced it were spoken, and
+    /// the replaced words are gone from the output. A model can't use it to drop or invent other text.
+    static func verifies(_ corrections: [(from: String, to: String)], input: String, output: String) -> Bool {
+        guard !corrections.isEmpty else { return false }
+        let spoken = Fidelity.tokens(input)
+        func said(_ phrase: String) -> Bool {
+            let p = Fidelity.tokens(phrase)
+            guard !p.isEmpty, p.count <= spoken.count else { return false }
+            return (0...(spoken.count - p.count)).contains { Array(spoken[$0..<($0 + p.count)]) == p }
+        }
+        let outAll = Fidelity.tokens(output)
+        return corrections.allSatisfy { c in
+            // Each replaced word is said fewer times than before (it may legitimately recur elsewhere:
+            // "scratch the cathedral ... the cathedral steps are closed"). An extension ("the team" ->
+            // "the whole design team") replaces no words, so nothing has to go.
+            let replaced = Set(Fidelity.tokens(c.from)).subtracting(Fidelity.tokens(c.to))
+            return said(c.from) && said(c.to) && replaced.allSatisfy { w in
+                outAll.filter { $0 == w }.count < spoken.filter { $0 == w }.count
+            }
+        }
     }
 
     /// The last content words of the transcript are what a truncated rewrite loses first, and losing

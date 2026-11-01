@@ -37,9 +37,9 @@ public struct OpenAICompatibleLLM: CleanupLLM {
         self.session = session
     }
 
-    public static func groq(apiKey: String) -> OpenAICompatibleLLM {
+    public static func groq(apiKey: String, effort: String = "low") -> OpenAICompatibleLLM {
         OpenAICompatibleLLM(name: "groq", baseURL: URL(string: "https://api.groq.com/openai/v1")!,
-                            apiKey: apiKey, model: "openai/gpt-oss-120b", extra: ["reasoning_effort": "low"])
+                            apiKey: apiKey, model: "openai/gpt-oss-120b", extra: ["reasoning_effort": effort])
     }
 
     func makeRequest(system: String, user: String, timeout: TimeInterval) throws -> URLRequest {

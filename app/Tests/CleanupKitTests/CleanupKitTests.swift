@@ -168,11 +168,13 @@ struct FakeLLM: CleanupLLM {
 
 @Suite("Cleaner chain")
 struct CleanerTests {
-    @Test func cleanTextSkipsTheLLM() async {
+    /// One or two words have no intent to judge; anything longer goes to the model (a short sentence
+    /// can still hold a correction: "Pizza. No, pastry.").
+    @Test func oneOrTwoWordsSkipTheLLM() async {
         let llm = FakeLLM(name: "groq", reply: "SHOULD NOT BE USED")
-        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean("Sounds good, see you at three.")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean("Sounds good.")
         #expect(r.via == "skipped")
-        #expect(r.text == "Sounds good, see you at three.")
+        #expect(r.text == "Sounds good.")
         #expect(llm.calls.users.isEmpty)
     }
 
@@ -484,6 +486,47 @@ struct LayoutChoiceLiveTests {
             }.count
             if let list { #expect((bullets >= 3) == list, "\(llm.name) \(ctx.appName ?? ""): \(heard.prefix(50)) -> \(r.text) [\(r.via) \(r.notes)]") }
             for m in must { #expect(r.text.lowercased().contains(m.lowercased()), "\(llm.name) missing \(m): \(r.text)") }
+        }
+    }
+
+    @Test(.enabled(if: env["GROQ_API_KEY"] != nil)) func groq() async {
+        await Self.check(OpenAICompatibleLLM.groq(apiKey: Self.env["GROQ_API_KEY"]!))
+    }
+
+    @Test(.enabled(if: env["ANTHROPIC_API_KEY"] != nil)) func haiku() async {
+        await Self.check(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
+    }
+}
+
+/// Self-corrections decided by the model from the prompt's examples, none of which are these sentences.
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter CorrectionLive
+@Suite("CorrectionLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
+struct CorrectionLiveTests {
+    static let env = ProcessInfo.processInfo.environment
+    static let whatsapp = AppContext(bundleID: "net.whatsapp.WhatsApp", appName: "WhatsApp")
+    static let notes = AppContext(bundleID: "com.apple.Notes", appName: "Notes")
+    /// (heard, app, must contain, must not contain)
+    static let cases: [(String, AppContext, [String], [String])] = [
+        // Corrections: keep only what was meant.
+        ("Can you get me something from Whole Foods? Pizza. No, pastry.", whatsapp, ["pastry", "Whole Foods"], ["izza"]),
+        ("Hey, are we on for dinner tonight? Let's do 7:00. No, um, let's do 8:00.", whatsapp, ["8"], ["7"]),
+        ("send the contract to Priya, no, send it to Marco before Friday", notes, ["Marco", "Friday"], ["Priya"]),
+        ("the meeting is in room two ten, sorry, two twelve", notes, ["212"], ["210"]),
+        // Not corrections: every word stays.
+        ("Is the deploy done? No. The migration is still running.", whatsapp, ["No", "migration is still running"], []),
+        ("No, I don't want to move the meeting to Monday.", whatsapp, ["No", "don't", "Monday"], []),
+        ("I actually think the old version was faster than this one.", notes, ["actually", "old version"], []),
+        ("get eggs and milk, oh and also some bread", whatsapp, ["eggs", "milk", "bread"], []),
+    ]
+
+    static func check(_ llm: CleanupLLM) async {
+        let c = Cleaner(chain: [.init(llm, timeout: 6)])
+        for (heard, ctx, must, not) in cases {
+            let r = await c.clean(heard, context: ctx)
+            let label = "\(llm.name): \(heard) -> \(r.text) [\(r.via) \(r.notes)]"
+            #expect(r.via == llm.name, "\(label)")
+            for m in must { #expect(r.text.lowercased().contains(m.lowercased()), "missing \(m): \(label)") }
+            for m in not { #expect(!r.text.lowercased().contains(m.lowercased()), "still has \(m): \(label)") }
         }
     }
 

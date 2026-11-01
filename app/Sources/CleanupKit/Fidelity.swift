@@ -115,6 +115,8 @@ public enum Fidelity {
 
     /// Digit sequences ("3", "300", "2026").
     public static func numbers(_ s: String) -> Set<String> {
+        // "6:00" and "6" are the same time: the ":00" is formatting, not a number that can be dropped.
+        let s = s.replacingOccurrences(of: "(\\d):00\\b", with: "$1", options: .regularExpression)
         guard let re = try? NSRegularExpression(pattern: "\\d+") else { return [] }
         let ns = s as NSString
         return Set(re.matches(in: s, range: NSRange(location: 0, length: ns.length)).map { ns.substring(with: $0.range) })

@@ -28,6 +28,7 @@ public enum RecognitionRepair {
     Rules:
     - Only fix what is clearly wrong AND where you are confident what was meant from the sound and the sentence. When unsure, leave it.
     - Do not fix grammar, punctuation, capitalization, filler words, style or word choice. Do not expand or shorten phrases. Keep key names and words as spoken words (write "Shift plus Command", never "Shift+Cmd").
+    - Never touch slang, abbreviations or casual words ("rn", "k", "lmk", "night night", "gonna"), and never swap a sensible word for a synonym ("grab" stays "grab"). A speaker correcting themselves ("the staging, the production deploy") is not a recognition error: leave it.
     - Unusual but sensible words are not errors ("my cup is on the desk", "it's on pre-order", "the allowed folders"). Never swap a word that makes sense as heard for a name, even one from <terms> or <context> that sounds similar.
     - "heard" must be copied exactly from the transcript, 1 to 4 words, including the wrong word plus a neighbour if needed to make it unique. "meant" is what the speaker said, at most 4 words.
 

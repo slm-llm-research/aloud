@@ -4,11 +4,16 @@ import Foundation
 /// they run on every path (LLM, skipped, offline, fallback) so output is clean regardless of model.
 public enum OutputHygiene {
     /// Legitimate doubled words that must survive repeat collapsing.
-    static let allowedDoubles: Set<String> = ["had", "that", "is", "do", "very", "really", "bye", "no", "ha", "so"]
-
     /// Before the LLM: removes stutters the recognizer wrote out.
     /// - Cut-off fragments: "sub- sub-agent" -> "sub-agent", "I- I think" -> "I think".
     /// - Immediate repeats: "the the" -> "the" (not "had had", "that that", ...).
+    static let stutterWords: Set<String> = [
+        // Not "had", "that", "is", "do": "had had", "that that" can be grammatical.
+        "the", "a", "an", "to", "of", "and", "in", "on", "at", "for", "with", "from", "by", "i", "we", "you", "he",
+        "she", "they", "it", "was", "are", "were", "be", "this", "my", "our", "your", "but", "or", "if", "as",
+        "can", "will", "would", "should", "have", "has", "did", "not", "just",
+    ]
+
     public static func collapseStutters(_ s: String) -> String {
         // A word cut off with a hyphen, then restarted with the same letters.
         var t = s.replacingOccurrences(of: "(?i)\\b([\\p{L}\\p{N}]+)-\\s+(?=\\1)", with: "",
@@ -21,8 +26,9 @@ public enum OutputHygiene {
         var last = 0
         for m in re.matches(in: t, range: NSRange(location: 0, length: ns.length)) {
             let word = ns.substring(with: m.range(at: 1))
-            // "dash dash watch" is "--watch", not a stutter.
-            guard !allowedDoubles.contains(word.lowercased()), !Fidelity.symbolWords.contains(word.lowercased()) else { continue }
+            // Only grammar words, which are never meant twice ("the the", "we we"). A doubled content word
+            // may be meant ("night night", "very very", "bye bye"): the model decides those.
+            guard stutterWords.contains(word.lowercased()) else { continue }
             out += ns.substring(with: NSRange(location: last, length: m.range.location - last)) + word
             last = m.range.location + m.range.length
         }
@@ -33,6 +39,32 @@ public enum OutputHygiene {
 
     /// Pulls the text out of `<edited>...</edited>`. Untagged output is taken whole. `outside` is any
     /// text the model wrote around the tags ("Sure, here's ..."), a sign it answered instead of edited.
+    /// The layout the model decided on ("<layout>list</layout>" before <edited>), and the reply without it.
+    public static func extractLayout(_ raw: String) -> (rest: String, layout: String?) {
+        guard let re = try? NSRegularExpression(pattern: "<layout>\\s*(sentences|list|prompt)\\s*</layout>", options: [.caseInsensitive]),
+              let m = re.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              let r = Range(m.range(at: 1), in: raw) else { return (raw, nil) }
+        let rest = re.stringByReplacingMatches(in: raw, range: NSRange(raw.startIndex..., in: raw), withTemplate: "")
+        return (rest, raw[r].lowercased())
+    }
+
+    /// The corrections the model reports after </edited> ("<correction>pizza → pastry</correction>"),
+    /// and the reply without them.
+    public static func extractCorrections(_ raw: String) -> (rest: String, corrections: [(from: String, to: String)]) {
+        guard let re = try? NSRegularExpression(pattern: "<correction>(.*?)</correction>", options: [.dotMatchesLineSeparators])
+        else { return (raw, []) }
+        var found: [(String, String)] = []
+        for m in re.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
+            guard let r = Range(m.range(at: 1), in: raw) else { continue }
+            let parts = raw[r].components(separatedBy: "→").count == 2
+                ? raw[r].components(separatedBy: "→") : raw[r].components(separatedBy: "->")
+            guard parts.count == 2 else { continue }
+            found.append((parts[0].trimmingCharacters(in: .whitespaces), parts[1].trimmingCharacters(in: .whitespaces)))
+        }
+        let rest = re.stringByReplacingMatches(in: raw, range: NSRange(raw.startIndex..., in: raw), withTemplate: "")
+        return (rest, found)
+    }
+
     public static func extractEdited(_ raw: String) -> (text: String, outside: String) {
         guard let open = raw.range(of: "<edited>") else {
             return (raw.replacingOccurrences(of: "</edited>", with: ""), "")
@@ -73,7 +105,7 @@ public enum OutputHygiene {
         if mode == .email { t = emailShape(t) }
         if mode == .chat {
             // Speech-to-text writes "at 5" as "at 5:00"; a chat message keeps it as said.
-            t = t.replacingOccurrences(of: "(?i)\\b(\\d{1,2}):00\\b(?!\\s*[ap]\\.?m)", with: "$1",
+            t = t.replacingOccurrences(of: "(?i)\\b(at|around|by|till|until) (\\d{1,2}):00\\b(?!\\s*[ap]\\.?m)", with: "$1 $2",
                                        options: .regularExpression)
         }
         t = t.replacingOccurrences(of: "[ \\t]+\\n", with: "\n", options: .regularExpression)
@@ -170,7 +202,8 @@ public enum OutputHygiene {
         let name = "\(nameWord)(?: \(nameWord))?"
         // Greeting with a name (or "there", "all", "team", "everyone") and more text after it.
         if let re = try? NSRegularExpression(
-            pattern: "^((?i:\(greetings)))[,.!]?[ \\t]+(\(name)|(?i:there|all|team|everyone))[,.!:]?\\s+(?=\\S)"),
+            // A title belongs to the name ("Dear Ms. Varga"), so its period doesn't end the greeting.
+            pattern: "^((?i:\(greetings)))[,.!]?[ \\t]+((?:(?:Mr|Ms|Mrs|Mx|Dr|Prof)\\.? )?\(name)|(?i:there|all|team|everyone))[,.!:]?\\s+(?=\\S)"),
            let m = re.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)),
            let whole = Range(m.range, in: t), let g = Range(m.range(at: 1), in: t), let n = Range(m.range(at: 2), in: t) {
             let greeting = t[g].prefix(1).uppercased() + t[g].dropFirst() + " " + t[n] + ","

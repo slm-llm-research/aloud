@@ -2,6 +2,28 @@
 
 Measured 2026-10-31 with the scenario eval harness ([`bench/scenario_eval.py`](bench/scenario_eval.py)). Interactive version: [`docs/results/index.html`](docs/results/index.html) (served at https://slm-llm-research.github.io/aloud/results/). Regenerate everything with `cd bench && uv run python export_results.py`.
 
+## Behavior evals (2026-11-01)
+
+660 labelled transcripts: per app, positives (the change should happen) and hard negatives (look-alikes
+that must be left alone), split 40/30/30 into train (prompt construction), dev (choosing prompt variants and
+settings) and a held-out test split scored only for the baseline (commit `22bf7db`) and the final build.
+
+| Held-out test, 198 cases | Baseline | Final |
+|---|---|---|
+| App chain (Groq, then Haiku), all | 84% | **92%** |
+| Groq alone / Haiku alone | 82% / 87% | **92% / 94%** |
+| Self-corrections | 56% | **85%** |
+| Lists vs sentences | 85% | **92%** |
+| Prompt vs free speech (coding agents) | 97% | **100%** |
+| Misheard words | 85% | **100%** |
+| Hard cases | 79% | **89%** |
+| To-do apps / Claude Code / chat apps | 53% / 82% / 76% | **88% / 100% / 88%** |
+| Fidelity (negations, numbers, hedges kept) | 88% | 76% (known gap, next) |
+| Latency p50 / p95 (app chain) | 513 / 1341 ms | 480 / 1186 ms |
+
+Full breakdowns (category × polarity, difficulty, length, app), the tuning log with rejected experiments,
+and limits: [`bench/results/BEHAVIOR.md`](bench/results/BEHAVIOR.md).
+
 ## Before and after
 
 ### Real voice (27 scenarios)

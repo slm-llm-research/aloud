@@ -1,0 +1,596 @@
+{
+ "app": {
+  "ai_chat": {
+   "pass": 19,
+   "total": 19
+  },
+  "ai_chat/negative": {
+   "pass": 7,
+   "total": 7
+  },
+  "ai_chat/positive": {
+   "pass": 12,
+   "total": 12
+  },
+  "all": {
+   "pass": 250,
+   "total": 267
+  },
+  "app/ai_apps": {
+   "pass": 33,
+   "total": 33
+  },
+  "app/chat_apps": {
+   "pass": 60,
+   "total": 64
+  },
+  "app/claude_code": {
+   "pass": 32,
+   "total": 33
+  },
+  "app/codex": {
+   "pass": 9,
+   "total": 9
+  },
+  "app/editor": {
+   "pass": 19,
+   "total": 20
+  },
+  "app/email_apps": {
+   "pass": 34,
+   "total": 38
+  },
+  "app/notes": {
+   "pass": 30,
+   "total": 33
+  },
+  "app/terminal": {
+   "pass": 21,
+   "total": 22
+  },
+  "app/todo": {
+   "pass": 12,
+   "total": 15
+  },
+  "chat": {
+   "pass": 15,
+   "total": 18
+  },
+  "chat/negative": {
+   "pass": 7,
+   "total": 8
+  },
+  "chat/positive": {
+   "pass": 8,
+   "total": 10
+  },
+  "difficulty+polarity/easy negative": {
+   "pass": 60,
+   "total": 60
+  },
+  "difficulty+polarity/easy positive": {
+   "pass": 78,
+   "total": 83
+  },
+  "difficulty+polarity/hard negative": {
+   "pass": 56,
+   "total": 60
+  },
+  "difficulty+polarity/hard positive": {
+   "pass": 56,
+   "total": 64
+  },
+  "difficulty/easy": {
+   "pass": 138,
+   "total": 143
+  },
+  "difficulty/hard": {
+   "pass": 112,
+   "total": 124
+  },
+  "email": {
+   "pass": 19,
+   "total": 20
+  },
+  "email/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "email/positive": {
+   "pass": 11,
+   "total": 12
+  },
+  "fidelity": {
+   "pass": 20,
+   "total": 22
+  },
+  "fidelity/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "fidelity/positive": {
+   "pass": 12,
+   "total": 14
+  },
+  "latency_ms": {
+   "p50": 505,
+   "p95": 1256
+  },
+  "length/long": {
+   "pass": 52,
+   "total": 61
+  },
+  "length/medium": {
+   "pass": 116,
+   "total": 122
+  },
+  "length/short": {
+   "pass": 82,
+   "total": 84
+  },
+  "list_vs_sentences": {
+   "pass": 48,
+   "total": 53
+  },
+  "list_vs_sentences/negative": {
+   "pass": 26,
+   "total": 27
+  },
+  "list_vs_sentences/positive": {
+   "pass": 22,
+   "total": 26
+  },
+  "misheard": {
+   "pass": 17,
+   "total": 18
+  },
+  "misheard/negative": {
+   "pass": 9,
+   "total": 9
+  },
+  "misheard/positive": {
+   "pass": 8,
+   "total": 9
+  },
+  "polarity/negative": {
+   "pass": 116,
+   "total": 120
+  },
+  "polarity/positive": {
+   "pass": 134,
+   "total": 147
+  },
+  "prompt_vs_speech": {
+   "pass": 40,
+   "total": 41
+  },
+  "prompt_vs_speech/negative": {
+   "pass": 20,
+   "total": 21
+  },
+  "prompt_vs_speech/positive": {
+   "pass": 20,
+   "total": 20
+  },
+  "self_correction": {
+   "pass": 51,
+   "total": 55
+  },
+  "self_correction/negative": {
+   "pass": 22,
+   "total": 23
+  },
+  "self_correction/positive": {
+   "pass": 29,
+   "total": 32
+  },
+  "terminal": {
+   "pass": 21,
+   "total": 21
+  },
+  "terminal/negative": {
+   "pass": 9,
+   "total": 9
+  },
+  "terminal/positive": {
+   "pass": 12,
+   "total": 12
+  }
+ },
+ "groq": {
+  "ai_chat": {
+   "pass": 19,
+   "total": 19
+  },
+  "ai_chat/negative": {
+   "pass": 7,
+   "total": 7
+  },
+  "ai_chat/positive": {
+   "pass": 12,
+   "total": 12
+  },
+  "all": {
+   "pass": 242,
+   "total": 267
+  },
+  "app/ai_apps": {
+   "pass": 32,
+   "total": 33
+  },
+  "app/chat_apps": {
+   "pass": 59,
+   "total": 64
+  },
+  "app/claude_code": {
+   "pass": 31,
+   "total": 33
+  },
+  "app/codex": {
+   "pass": 9,
+   "total": 9
+  },
+  "app/editor": {
+   "pass": 19,
+   "total": 20
+  },
+  "app/email_apps": {
+   "pass": 31,
+   "total": 38
+  },
+  "app/notes": {
+   "pass": 29,
+   "total": 33
+  },
+  "app/terminal": {
+   "pass": 20,
+   "total": 22
+  },
+  "app/todo": {
+   "pass": 12,
+   "total": 15
+  },
+  "chat": {
+   "pass": 16,
+   "total": 18
+  },
+  "chat/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "chat/positive": {
+   "pass": 8,
+   "total": 10
+  },
+  "difficulty+polarity/easy negative": {
+   "pass": 60,
+   "total": 60
+  },
+  "difficulty+polarity/easy positive": {
+   "pass": 76,
+   "total": 83
+  },
+  "difficulty+polarity/hard negative": {
+   "pass": 56,
+   "total": 60
+  },
+  "difficulty+polarity/hard positive": {
+   "pass": 50,
+   "total": 64
+  },
+  "difficulty/easy": {
+   "pass": 136,
+   "total": 143
+  },
+  "difficulty/hard": {
+   "pass": 106,
+   "total": 124
+  },
+  "email": {
+   "pass": 19,
+   "total": 20
+  },
+  "email/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "email/positive": {
+   "pass": 11,
+   "total": 12
+  },
+  "fidelity": {
+   "pass": 20,
+   "total": 22
+  },
+  "fidelity/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "fidelity/positive": {
+   "pass": 12,
+   "total": 14
+  },
+  "latency_ms": {
+   "p50": 528,
+   "p95": 992
+  },
+  "length/long": {
+   "pass": 46,
+   "total": 61
+  },
+  "length/medium": {
+   "pass": 115,
+   "total": 122
+  },
+  "length/short": {
+   "pass": 81,
+   "total": 84
+  },
+  "list_vs_sentences": {
+   "pass": 44,
+   "total": 53
+  },
+  "list_vs_sentences/negative": {
+   "pass": 26,
+   "total": 27
+  },
+  "list_vs_sentences/positive": {
+   "pass": 18,
+   "total": 26
+  },
+  "misheard": {
+   "pass": 17,
+   "total": 18
+  },
+  "misheard/negative": {
+   "pass": 9,
+   "total": 9
+  },
+  "misheard/positive": {
+   "pass": 8,
+   "total": 9
+  },
+  "polarity/negative": {
+   "pass": 116,
+   "total": 120
+  },
+  "polarity/positive": {
+   "pass": 126,
+   "total": 147
+  },
+  "prompt_vs_speech": {
+   "pass": 40,
+   "total": 41
+  },
+  "prompt_vs_speech/negative": {
+   "pass": 20,
+   "total": 21
+  },
+  "prompt_vs_speech/positive": {
+   "pass": 20,
+   "total": 20
+  },
+  "self_correction": {
+   "pass": 47,
+   "total": 55
+  },
+  "self_correction/negative": {
+   "pass": 21,
+   "total": 23
+  },
+  "self_correction/positive": {
+   "pass": 26,
+   "total": 32
+  },
+  "terminal": {
+   "pass": 20,
+   "total": 21
+  },
+  "terminal/negative": {
+   "pass": 9,
+   "total": 9
+  },
+  "terminal/positive": {
+   "pass": 11,
+   "total": 12
+  }
+ },
+ "haiku": {
+  "ai_chat": {
+   "pass": 19,
+   "total": 19
+  },
+  "ai_chat/negative": {
+   "pass": 7,
+   "total": 7
+  },
+  "ai_chat/positive": {
+   "pass": 12,
+   "total": 12
+  },
+  "all": {
+   "pass": 256,
+   "total": 267
+  },
+  "app/ai_apps": {
+   "pass": 31,
+   "total": 33
+  },
+  "app/chat_apps": {
+   "pass": 62,
+   "total": 64
+  },
+  "app/claude_code": {
+   "pass": 32,
+   "total": 33
+  },
+  "app/codex": {
+   "pass": 8,
+   "total": 9
+  },
+  "app/editor": {
+   "pass": 20,
+   "total": 20
+  },
+  "app/email_apps": {
+   "pass": 36,
+   "total": 38
+  },
+  "app/notes": {
+   "pass": 32,
+   "total": 33
+  },
+  "app/terminal": {
+   "pass": 21,
+   "total": 22
+  },
+  "app/todo": {
+   "pass": 14,
+   "total": 15
+  },
+  "chat": {
+   "pass": 17,
+   "total": 18
+  },
+  "chat/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "chat/positive": {
+   "pass": 9,
+   "total": 10
+  },
+  "difficulty+polarity/easy negative": {
+   "pass": 60,
+   "total": 60
+  },
+  "difficulty+polarity/easy positive": {
+   "pass": 80,
+   "total": 83
+  },
+  "difficulty+polarity/hard negative": {
+   "pass": 58,
+   "total": 60
+  },
+  "difficulty+polarity/hard positive": {
+   "pass": 58,
+   "total": 64
+  },
+  "difficulty/easy": {
+   "pass": 140,
+   "total": 143
+  },
+  "difficulty/hard": {
+   "pass": 116,
+   "total": 124
+  },
+  "email": {
+   "pass": 19,
+   "total": 20
+  },
+  "email/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "email/positive": {
+   "pass": 11,
+   "total": 12
+  },
+  "fidelity": {
+   "pass": 21,
+   "total": 22
+  },
+  "fidelity/negative": {
+   "pass": 8,
+   "total": 8
+  },
+  "fidelity/positive": {
+   "pass": 13,
+   "total": 14
+  },
+  "latency_ms": {
+   "p50": 1579,
+   "p95": 2192
+  },
+  "length/long": {
+   "pass": 57,
+   "total": 61
+  },
+  "length/medium": {
+   "pass": 117,
+   "total": 122
+  },
+  "length/short": {
+   "pass": 82,
+   "total": 84
+  },
+  "list_vs_sentences": {
+   "pass": 52,
+   "total": 53
+  },
+  "list_vs_sentences/negative": {
+   "pass": 26,
+   "total": 27
+  },
+  "list_vs_sentences/positive": {
+   "pass": 26,
+   "total": 26
+  },
+  "misheard": {
+   "pass": 17,
+   "total": 18
+  },
+  "misheard/negative": {
+   "pass": 8,
+   "total": 9
+  },
+  "misheard/positive": {
+   "pass": 9,
+   "total": 9
+  },
+  "polarity/negative": {
+   "pass": 118,
+   "total": 120
+  },
+  "polarity/positive": {
+   "pass": 138,
+   "total": 147
+  },
+  "prompt_vs_speech": {
+   "pass": 41,
+   "total": 41
+  },
+  "prompt_vs_speech/negative": {
+   "pass": 21,
+   "total": 21
+  },
+  "prompt_vs_speech/positive": {
+   "pass": 20,
+   "total": 20
+  },
+  "self_correction": {
+   "pass": 49,
+   "total": 55
+  },
+  "self_correction/negative": {
+   "pass": 23,
+   "total": 23
+  },
+  "self_correction/positive": {
+   "pass": 26,
+   "total": 32
+  },
+  "terminal": {
+   "pass": 21,
+   "total": 21
+  },
+  "terminal/negative": {
+   "pass": 9,
+   "total": 9
+  },
+  "terminal/positive": {
+   "pass": 12,
+   "total": 12
+  }
+ }
+}

@@ -1,0 +1,11 @@
+[
+  {"id": "baseline", "change": "Last pushed version (22bf7db): model decides layout with no stated decision, correction leniency from fixed cue words, rule-based list/prompt shortcuts.", "dev_app": "78%", "decision": "reference"},
+  {"id": "current", "change": "Work before the expanded eval: model states its layout (<layout>), reports self-corrections (<correction>) that the guardrail verifies, few-shot positives and negatives for corrections, prompt layout and lists; misheard-word repair; fixed scorer.", "dev_app": "92%", "decision": "starting point for tuning"},
+  {"id": "E1", "change": "Bug fixes: a correction may legitimately repeat a replaced word later (count-based check); spoken symbols don't count as lost words in shell commands.", "dev_app": "91% / 91%", "decision": "kept (correctness; within noise)"},
+  {"id": "E2", "change": "Only corrections the model reported and that verify loosen the guardrail (no fixed cue-word list).", "dev_app": "92% / 92%", "decision": "kept (same score, the model decides instead of a word list)"},
+  {"id": "E3", "change": "E2 without the misheard-word repair pass.", "dev_app": "90% / 91%; misheard 75%; p50 330 ms", "decision": "rejected (repair is worth ~200 ms)"},
+  {"id": "E4", "change": "E2 with Groq reasoning effort medium.", "dev_app": "94% / 93%; p50 1.1 s, p95 2.6 s", "decision": "rejected (+1-2 points for double the latency)"},
+  {"id": "E5", "change": "E2 plus few-shot examples drawn from the train split: correction followed by a reason, 'no' and 'sorry' that are not corrections, stacked hedges, chat slang, to-do lists, an email checklist, a shell correction.", "dev_app": "94% / 92%; Haiku alone 92% -> 95%", "decision": "kept"},
+  {"id": "E6", "change": "E5 plus more train-sourced examples (correction a sentence later, numbered steps in Notes, repair negatives) and a 'keep units as spoken' rule.", "dev_app": "92% / 92%; corrections 93% -> 88% / 85%; train 96% -> 97%", "decision": "rejected (overfit: train up, dev down)"},
+  {"id": "final", "change": "E5 + email title fix ('Dear Ms. Varga'); verified-only corrections made the app default.", "dev_app": "93% / 93%", "decision": "shipped"}
+]

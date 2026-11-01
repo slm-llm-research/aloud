@@ -35,6 +35,12 @@ interactive page: [**slm-llm-research.github.io/aloud/results**](https://slm-llm
 | Layout right for the app (lists, email lines, prompt sections), synthetic | 94.6% | **100.0%** |
 | Speech-to-text word error rate, real voice | 2.7% | 2.7% |
 | Key release to text typed, median | 413 ms | 375 ms |
+| **Behavior evals**, 198 held-out cases: does each app get the right change, and only when it should (prompt vs free speech, lists, self-corrections, chat tone, email, shell, misheard words) | 84% passed | **92% passed** |
+| Self-corrections applied (held-out) | 56% | **85%** |
+| Coding agents: Claude Code requests laid out, free speech left alone (held-out) | 82% | **100%** |
+
+Behavior evals: 660 labelled dictations (positives and hard negatives per app), split train / dev / held-out
+test; method, every breakdown and the tuning log in [**bench/results/BEHAVIOR.md**](bench/results/BEHAVIOR.md).
 
 By app, real voice, current code: Notes 100.0% · Gmail (Chrome) 100.0% · WhatsApp 75.0% · Claude Code (Terminal) 75.0% · Claude desktop 100.0%.
 
@@ -311,6 +317,14 @@ Past tasks are rebuilt from the audit log, so they survive restarts.
 
 Most dictation tools don't publish how often they get things wrong. Aloud ships its eval harness and
 its results.
+
+**Behavior evals** ([`bench/behavior_eval.py`](bench/behavior_eval.py), dataset
+[`bench/behavior/`](bench/behavior/SPEC.md)): 660 labelled transcripts across Claude Code, Codex, Cursor, the
+shell, WhatsApp/Slack/Messages, Mail/Gmail/Outlook, Notes/Reminders and Claude/ChatGPT. Each is a positive (the
+change should happen: a prompt laid out, a list made, a correction applied, a misheard word repaired) or a
+negative look-alike that must be left alone, marked easy or hard. Prompts were tuned on `train` and `dev`; the
+`test` split was scored only for the baseline and the final build: 84% → 92% (app chain), 82% → 92% (Groq
+alone), 87% → 94% (Haiku alone). Report: [`bench/results/BEHAVIOR.md`](bench/results/BEHAVIOR.md).
 
 [`bench/scenarios.jsonl`](bench/scenarios.jsonl) has 37 scenarios across every mode: self-corrections,
 negations, numbers, names, slang, stutters, instruction-shaped sentences that must not be carried out, shell
