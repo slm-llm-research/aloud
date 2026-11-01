@@ -33,8 +33,8 @@ public enum TransientPasteboardType {
     /// dictation never shows up in your clipboard history.
     public static let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
     public static let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
-    /// Marks the item as written by InstructFlow, so we only restore if it's still ours.
-    public static let instructflow = NSPasteboard.PasteboardType("ai.instructflow.dictation")
+    /// Marks the item as written by Aloud, so we only restore if it's still ours.
+    public static let aloud = NSPasteboard.PasteboardType("ai.aloud.dictation")
 }
 
 extension NSPasteboard {
@@ -46,13 +46,13 @@ extension NSPasteboard {
         item.setString(text, forType: .string)
         item.setData(Data(), forType: TransientPasteboardType.transient)
         item.setData(Data(), forType: TransientPasteboardType.concealed)
-        item.setData(Data(), forType: TransientPasteboardType.instructflow)
+        item.setData(Data(), forType: TransientPasteboardType.aloud)
         writeObjects([item])
         return changeCount
     }
 
     /// True if the pasteboard still holds the item we wrote (nobody copied something new since).
     public func stillHoldsOurItem(changeCount expected: Int) -> Bool {
-        changeCount == expected && (types?.contains(TransientPasteboardType.instructflow) ?? false)
+        changeCount == expected && (types?.contains(TransientPasteboardType.aloud) ?? false)
     }
 }

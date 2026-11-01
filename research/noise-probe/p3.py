@@ -1,5 +1,5 @@
 import asyncio, base64, json, sys, os, numpy as np, soundfile as sf, websockets
-key = [l.split("=",1)[1].strip().strip('"') for l in open(os.path.expanduser("~/Library/Application Support/InstructFlow/keys.env")) if l.startswith("ELEVENLABS_API_KEY")][0]
+key = [l.split("=",1)[1].strip().strip('"') for l in open(os.path.expanduser("~/Library/Application Support/Aloud/keys.env")) if l.startswith("ELEVENLABS_API_KEY")][0]
 clean, _ = sf.read(sys.argv[1], dtype="float32"); babble, _ = sf.read(sys.argv[2], dtype="float32")
 async def run(a, extra):
     url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&audio_format=pcm_16000&commit_strategy=manual&language_code=en" + extra

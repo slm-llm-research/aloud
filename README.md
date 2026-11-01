@@ -1,8 +1,8 @@
-# InstructFlow
+# Aloud
 
 **Voice dictation for macOS that keeps your words, and a voice interface for coding agents.**
 
-Hold Right Shift, talk, let go: your speech is typed into whatever app has focus. InstructFlow looks at
+Hold Right Shift, talk, let go: your speech is typed into whatever app has focus. Aloud looks at
 *where* you are dictating and cleans the text accordingly. It removes the "um"s, applies "no wait, Friday"
 corrections and fixes punctuation, but it doesn't rewrite what you said. A spoken question is typed, never
 answered. Add Right ⌘ to the chord and the sentence becomes a **task** for a local agent that works in
@@ -11,7 +11,7 @@ folders you allow, asking before every step that changes something.
 It's an open-source, local-first alternative to tools like Wispr Flow and Superwhisper, built for
 developers who spend their day talking to Claude Code, Codex and Cursor.
 
-| You say, in… | InstructFlow types |
+| You say, in… | Aloud types |
 |---|---|
 | **Notes**: "um so I was thinking that we should uh move the meeting to Thursday because no wait Friday works better" | So I was thinking that we should move the meeting to Friday, because Friday works better. |
 | **Notes**: "grocery list eggs milk two loaves of bread and spinach" | Grocery list:<br>- Eggs<br>- Milk<br>- Two loaves of bread<br>- Spinach |
@@ -25,7 +25,7 @@ developers who spend their day talking to Claude Code, Codex and Cursor.
 
 **Measured, not claimed.** Every scenario is spoken into a real app, and the harness checks what reached the
 screen against what was said. Full numbers: [**BENCHMARKS.md**](BENCHMARKS.md) ·
-interactive page: [**slm-llm-research.github.io/instructflow/results**](https://slm-llm-research.github.io/instructflow/results/)
+interactive page: [**slm-llm-research.github.io/aloud/results**](https://slm-llm-research.github.io/aloud/results/)
 
 | | Before | After |
 |---|---|---|
@@ -38,7 +38,7 @@ interactive page: [**slm-llm-research.github.io/instructflow/results**](https://
 
 By app, real voice, current code: Notes 100.0% · Gmail (Chrome) 100.0% · WhatsApp 75.0% · Claude Code (Terminal) 75.0% · Claude desktop 100.0%.
 
-[![InstructFlow benchmark page: before and after pass rates, every metric, by app and by noise](docs/results/screenshot.png)](https://slm-llm-research.github.io/instructflow/results/)
+[![Aloud benchmark page: before and after pass rates, every metric, by app and by noise](docs/results/screenshot.png)](https://slm-llm-research.github.io/aloud/results/)
 
 ## Contents
 
@@ -101,7 +101,7 @@ flowchart LR
 | Python | [uv](https://docs.astral.sh/uv/), only for the benchmarks and evals (`brew install uv`) |
 | API keys | All optional, see below |
 
-**API keys.** InstructFlow works without any keys: it then uses the on-device model and rule-based
+**API keys.** Aloud works without any keys: it then uses the on-device model and rule-based
 cleanup only. Each key turns on one part:
 
 | Key | Used for | Get one |
@@ -115,8 +115,8 @@ cleanup only. Each key turns on one part:
 ### 1. Get the code
 
 ```bash
-git clone https://github.com/slm-llm-research/instructflow.git
-cd instructflow
+git clone https://github.com/slm-llm-research/aloud.git
+cd aloud
 ```
 
 ### 2. Build the app
@@ -124,8 +124,8 @@ cd instructflow
 ```bash
 cd app
 swift test              # ~200 unit tests, a few seconds, no permissions needed
-scripts/bundle.sh       # builds app/build/InstructFlow.app (release) and signs it
-open build/InstructFlow.app
+scripts/bundle.sh       # builds app/build/Aloud.app (release) and signs it
+open build/Aloud.app
 ```
 
 The first build downloads Swift packages. The first launch downloads the Parakeet model (~600 MB) in the
@@ -144,11 +144,11 @@ permissions across rebuilds.
 
 ### 3. Grant permissions
 
-On first launch, macOS asks for three permissions. Turn on InstructFlow in **System Settings → Privacy &
+On first launch, macOS asks for three permissions. Turn on Aloud in **System Settings → Privacy &
 Security** under:
 
 - **Microphone**: to hear you while the key is held.
-- **Input Monitoring**: to see Right Shift (InstructFlow only reacts to its own keys; Tab, Shift+Tab and
+- **Input Monitoring**: to see Right Shift (Aloud only reacts to its own keys; Tab, Shift+Tab and
   everything else pass through untouched).
 - **Accessibility**: to type into the focused app.
 
@@ -163,8 +163,8 @@ Put the keys in a file, using `.env.example` as the template:
 cp .env.example .env    # then fill in the keys you have
 ```
 
-Then choose **Import API Keys from .env…** in InstructFlow's menu and pick the file. The keys are copied
-to `~/Library/Application Support/InstructFlow/keys.env` (mode 0600, readable only by you). They are not
+Then choose **Import API Keys from .env…** in Aloud's menu and pick the file. The keys are copied
+to `~/Library/Application Support/Aloud/keys.env` (mode 0600, readable only by you). They are not
 stored in the Keychain, so no password prompts appear. `.env` is gitignored, so the keys never end up in
 the repository.
 
@@ -177,7 +177,7 @@ npm run build           # -> agentd/dist/main.js; the app starts it automaticall
 npm test
 ```
 
-Restart InstructFlow. The menu's agent line shows that it's connected. Then open **Agent Settings…** and add the
+Restart Aloud. The menu's agent line shows that it's connected. Then open **Agent Settings…** and add the
 folders the agent may work in. **By default it has none**, so it can't touch anything until you choose.
 
 ## Using it
@@ -205,7 +205,7 @@ so Shift+Tab (for example Claude Code's mode switch) always works.
 - **Agent Settings…:** the agent's folders and model.
 - **Open Log:** a diagnostic log with each dictation's mode, latency and cleanup path.
 
-**Personal dictionary**, at `~/Library/Application Support/InstructFlow/dictionary.txt`:
+**Personal dictionary**, at `~/Library/Application Support/Aloud/dictionary.txt`:
 
 ```text
 # Terms to spell exactly (also sent to speech-to-text as hints):
@@ -250,9 +250,14 @@ approval first.
 notch on MacBooks) shows what the agent is doing: the step in progress, "2/4" from its plan, and the
 elapsed time. Hover it to see what it heard, the plan as a checklist, each tool step with its result
 and timing, and a stop button. When a step needs you, the island turns into an approval card in place
-with a risk badge, a plain title ("Run git status in voice-flow"), the exact command or a coloured diff,
+with a risk badge, a plain title ("Run git status in aloud"), the exact command or a coloured diff,
 and a countdown to the automatic deny. It never takes focus from the app you're in; click the card and
-⌘↩ approves, Esc denies, ⌘. stops the task. **Agent Tasks** in the menu lists recent tasks.
+⌘↩ approves, Esc denies, ⌘. stops the task.
+
+**Task Center** (menu bar ▸ Task Center…, or "Open Task Center" in the island) is the full view: every
+task, running or past, filterable and searchable, with what it heard, the result, the plan, each step's
+result, timing and risk, token counts, and any approval it's waiting for (approve or deny from there).
+Past tasks are rebuilt from the audit log, so they survive restarts.
 
 | Tool | Effect | Approval |
 |---|---|---|
@@ -263,9 +268,9 @@ and a countdown to the automatic deny. It never takes focus from the app you're 
 | `open_app`, `open_url` | Open an application or a web page | Yes |
 
 - **Approvals:** an approval you don't answer is denied after two minutes.
-- **Audit log:** every step is written to `~/Library/Logs/InstructFlow/agent-audit.jsonl`.
+- **Audit log:** every step is written to `~/Library/Logs/Aloud/agent-audit.jsonl`.
 - **Kill switch:** **Stop All Agent Tasks** in the menu.
-- **Configuration:** `~/Library/Application Support/InstructFlow/agent.json` holds the allowed folders,
+- **Configuration:** `~/Library/Application Support/Aloud/agent.json` holds the allowed folders,
   model and effort level.
 
 ## Privacy and where your data goes
@@ -276,14 +281,14 @@ and a countdown to the automatic deny. It never takes focus from the app you're 
   is on. The prompt contains the transcript, your dictionary terms and, for developer and AI-chat modes,
   the target app's name.
 - **Window titles:** read locally to pick the mode, and never sent anywhere.
-- **Logs:** the diagnostic log and `dictations.jsonl` (used by the evals) stay in `~/Library/Logs/InstructFlow/`
+- **Logs:** the diagnostic log and `dictations.jsonl` (used by the evals) stay in `~/Library/Logs/Aloud/`
   on your Mac and contain your transcripts, so delete them whenever you like. The eval harness strips email
   addresses from window titles before it saves any result.
-- **Keys:** `~/Library/Application Support/InstructFlow/keys.env`, mode 0600.
+- **Keys:** `~/Library/Application Support/Aloud/keys.env`, mode 0600.
 
 ## Evals: measured, published accuracy
 
-Most dictation tools don't publish how often they get things wrong. InstructFlow ships its eval harness and
+Most dictation tools don't publish how often they get things wrong. Aloud ships its eval harness and
 its results.
 
 [`bench/scenarios.jsonl`](bench/scenarios.jsonl) has 37 scenarios across every mode: self-corrections,
@@ -344,14 +349,14 @@ There are also component benchmarks:
 cd app
 swift test                                           # unit tests
 set -a; source ../.env; set +a                       # load keys for live tests
-INSTRUCTFLOW_INTEGRATION=1 swift test --filter "ModesLive|CodingLive"   # real Groq/Haiku calls
-INSTRUCTFLOW_INTEGRATION=1 swift test --filter ScribeLive              # real ElevenLabs session
-scripts/bundle.sh && open build/InstructFlow.app
+ALOUD_INTEGRATION=1 swift test --filter "ModesLive|CodingLive"   # real Groq/Haiku calls
+ALOUD_INTEGRATION=1 swift test --filter ScribeLive              # real ElevenLabs session
+scripts/bundle.sh && open build/Aloud.app
 
 # Agent daemon
 cd agentd
 npm test
-INSTRUCTFLOW_INTEGRATION=1 npm test                  # real Claude calls
+ALOUD_INTEGRATION=1 npm test                  # real Claude calls
 
 # Evals
 cd bench
@@ -361,7 +366,7 @@ uv run python scenario_eval.py selftest
 The diagnostic log is the first stop for any problem:
 
 ```bash
-tail -f ~/Library/Logs/InstructFlow/instructflow.log
+tail -f ~/Library/Logs/Aloud/aloud.log
 ```
 
 Each dictation logs a line with the mode it picked and why, the speech-to-text source and latency, the
@@ -378,9 +383,9 @@ app/                     macOS menu-bar app (Swift 6.1, SwiftPM, no Xcode projec
   Sources/CleanupKit/    mode router, rule passes, prompts, LLM clients, fidelity guardrail
   Sources/InsertKit/     clipboard-safe paste and key typing
   Sources/AgentKit/      agentd process, socket client, task store
-  Sources/AgentUI/       the agent island (SwiftUI): task pill, plan drawer, approval card
-  Sources/InstructFlowCore/  session: record -> transcribe -> clean -> insert
-  Sources/InstructFlow/  app, menu, HUD, permissions
+  Sources/AgentUI/       the agent island (task pill, plan drawer, approval card) and the Task Center
+  Sources/AloudCore/  session: record -> transcribe -> clean -> insert
+  Sources/Aloud/  app, menu, HUD, permissions
   Tests/                 unit tests, live tests (opt-in), scenario replay
   scripts/               bundle.sh, make-signing-cert.sh
 agentd/                  local agent daemon (Node 22, TypeScript, Anthropic SDK)
@@ -417,6 +422,6 @@ Never commit API keys: `.env` is gitignored, so keep keys there or in the app's 
 [Apache License 2.0](LICENSE). Copyright 2026 Shekhar Tanwar. You may use, modify and distribute it, including
 commercially; the license also grants the contributors' patent rights. See [`NOTICE`](NOTICE).
 
-InstructFlow uses [FluidAudio](https://github.com/FluidInference/FluidAudio) and NVIDIA's Parakeet TDT
+Aloud uses [FluidAudio](https://github.com/FluidInference/FluidAudio) and NVIDIA's Parakeet TDT
 0.6B v2 model (CC-BY-4.0) for on-device speech, and the ElevenLabs, Groq and Anthropic APIs under their
 own terms.

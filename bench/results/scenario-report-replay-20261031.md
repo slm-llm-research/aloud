@@ -1,4 +1,4 @@
-# InstructFlow scenario eval: replay-20261031
+# Aloud scenario eval: replay-20261031
 
 37 of 37 scenarios. Source: replay: say -v Samantha, replay: say -v Samantha, noise 5.0 dB SNR.  Replay = text-to-speech into live speech-to-text and the app's cleanup code (no mic, no typing into the app). Lower is better for error rates; higher for the rest.
 

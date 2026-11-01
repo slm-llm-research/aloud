@@ -1,7 +1,7 @@
 import AgentKit
 import AgentUI
 import AppKit
-import InstructFlowCore
+import AloudCore
 
 /// Owns the agent side of the app: starts agentd, forwards spoken tasks, feeds the task store that
 /// the agent island and the menu show, and provides the kill switch.
@@ -9,7 +9,7 @@ import InstructFlowCore
 final class AgentController: TaskSubmitting {
     static let configURL = AppDelegate.supportDir.appendingPathComponent("agent.json")
     static let socketPath = AppDelegate.supportDir.appendingPathComponent("agentd.sock").path
-    /// The daemon in the same checkout as the app: <repo>/app/build/InstructFlow.app -> <repo>/agentd/dist/main.js
+    /// The daemon in the same checkout as the app: <repo>/app/build/Aloud.app -> <repo>/agentd/dist/main.js
     /// (override with "agentdScript" in agent.json).
     static let defaultScript = Bundle.main.bundleURL
         .deletingLastPathComponent()  // app/build
@@ -20,6 +20,7 @@ final class AgentController: TaskSubmitting {
     let client = AgentClient(socketPath: socketPath)
     let store = TaskStore()
     private(set) lazy var island = AgentIsland(store: store)
+    private(set) lazy var center = TaskCenter(store: store)
     private var process: AgentProcess?
     private let hud: HUD
     var onChange: (() -> Void)?
@@ -29,6 +30,7 @@ final class AgentController: TaskSubmitting {
         client.onEvent = { [weak self] in self?.handle($0) }
         client.onConnectionChange = { [weak self] up in
             dlog("agent: \(up ? "connected" : "disconnected")")
+            if up { self?.loadHistory() }
             self?.onChange?()
         }
         island.onDecision = { [weak self] req, approved in
@@ -36,6 +38,13 @@ final class AgentController: TaskSubmitting {
             Task { try? await self?.client.respond(stepId: req.stepId, approve: approved) }
         }
         island.onStop = { [weak self] id in self?.stop(id) }
+        island.onOpenCenter = { [weak self] id in self?.center.show(select: id) }
+        center.onDecision = { [weak self] req, approved in
+            dlog("agent: \(approved ? "approved" : "denied") \(req.tool) (Task Center)")
+            Task { try? await self?.client.respond(stepId: req.stepId, approve: approved) }
+        }
+        center.onStop = { [weak self] id in self?.stop(id) }
+        center.onRefresh = { [weak self] in self?.loadHistory() }
     }
 
     func start() {
@@ -100,6 +109,17 @@ final class AgentController: TaskSubmitting {
             let n = (try? await client.cancelAll()) ?? 0
             dlog("agent: stop all -> cancelled \(n)")
             hud.showMessage(n > 0 ? "Stopped \(n) agent task(s)" : "No agent tasks running")
+        }
+    }
+
+    /// Past tasks from agentd's audit log, so the Task Center survives app restarts.
+    func loadHistory() {
+        Task {
+            do {
+                store.mergeHistory(try await client.history(limit: TaskStore.historyLimit))
+            } catch {
+                dlog("agent: history failed: \(error)")
+            }
         }
     }
 

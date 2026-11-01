@@ -1,6 +1,6 @@
 import Foundation
 
-/// Wire format for instructflow-agentd: JSON-RPC 2.0, one JSON object per line, over a Unix socket
+/// Wire format for aloud-agentd: JSON-RPC 2.0, one JSON object per line, over a Unix socket
 /// (agentd/src/rpc.ts). Pure and unit-tested; `AgentClient` does the I/O.
 public enum AgentProtocol {
     public struct ApprovalRequest: Equatable, Sendable, Identifiable {
@@ -154,9 +154,10 @@ public enum AgentProtocol {
     }
 }
 
-/// The few JSON scalar types responses carry, made Equatable/Sendable.
+/// The JSON values responses carry, made Equatable/Sendable. Arrays and objects stay encoded
+/// (`json`) for the caller that knows their shape to decode.
 public enum AnyCodableValue: Equatable, Sendable {
-    case string(String), number(Double), bool(Bool)
+    case string(String), number(Double), bool(Bool), json(Data)
 
     public init?(_ any: Any) {
         if let n = any as? NSNumber {
@@ -164,6 +165,9 @@ public enum AnyCodableValue: Equatable, Sendable {
             self = CFGetTypeID(n) == CFBooleanGetTypeID() ? .bool(n.boolValue) : .number(n.doubleValue)
         } else if let s = any as? String {
             self = .string(s)
+        } else if JSONSerialization.isValidJSONObject(any),
+                  let data = try? JSONSerialization.data(withJSONObject: any, options: [.sortedKeys]) {
+            self = .json(data)
         } else {
             return nil
         }
@@ -172,4 +176,5 @@ public enum AnyCodableValue: Equatable, Sendable {
     public var string: String? { if case .string(let s) = self { s } else { nil } }
     public var number: Double? { if case .number(let n) = self { n } else { nil } }
     public var bool: Bool? { if case .bool(let b) = self { b } else { nil } }
+    public var json: Data? { if case .json(let d) = self { d } else { nil } }
 }

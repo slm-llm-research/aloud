@@ -2,10 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "InstructFlow",
+    name: "Aloud",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "InstructFlow", targets: ["InstructFlow"]),
+        .executable(name: "Aloud", targets: ["Aloud"]),
     ],
     dependencies: [
         // Parakeet on the Apple Neural Engine. Pinned exactly; bump deliberately.
@@ -28,22 +28,22 @@ let package = Package(
         .target(name: "AgentUI", dependencies: ["AgentKit"]),
         // The session flow (record -> transcribe race -> clean -> insert). Depends only on
         // protocols, so it is tested with fakes.
-        .target(name: "InstructFlowCore", dependencies: ["HotkeyKit"]),
-        // The menubar app: wires the real implementations into InstructFlowCore.
-        .executableTarget(name: "InstructFlow",
-                          dependencies: ["HotkeyKit", "AudioKit", "STTKit", "InsertKit", "CleanupKit", "AgentKit", "AgentUI", "InstructFlowCore"]),
+        .target(name: "AloudCore", dependencies: ["HotkeyKit"]),
+        // The menubar app: wires the real implementations into AloudCore.
+        .executableTarget(name: "Aloud",
+                          dependencies: ["HotkeyKit", "AudioKit", "STTKit", "InsertKit", "CleanupKit", "AgentKit", "AgentUI", "AloudCore"]),
 
         .testTarget(name: "HotkeyKitTests", dependencies: ["HotkeyKit"]),
         .testTarget(name: "AudioKitTests", dependencies: ["AudioKit"]),
         .testTarget(name: "InsertKitTests", dependencies: ["InsertKit"]),
-        // Runs the real model; skipped unless INSTRUCTFLOW_INTEGRATION=1 (first run downloads ~600 MB).
+        // Runs the real model; skipped unless ALOUD_INTEGRATION=1 (first run downloads ~600 MB).
         .testTarget(name: "STTKitTests", dependencies: ["STTKit", "AudioKit"]),
-        .testTarget(name: "InstructFlowCoreTests", dependencies: ["InstructFlowCore", "HotkeyKit"]),
-        // Unit tests always; live Groq/Anthropic tests only with INSTRUCTFLOW_INTEGRATION=1 and keys in env.
+        .testTarget(name: "AloudCoreTests", dependencies: ["AloudCore", "HotkeyKit"]),
+        // Unit tests always; live Groq/Anthropic tests only with ALOUD_INTEGRATION=1 and keys in env.
         .testTarget(name: "CleanupKitTests", dependencies: ["CleanupKit"]),
-        // Protocol unit tests; with INSTRUCTFLOW_INTEGRATION=1, a real agentd round trip (ping only, no LLM).
+        // Protocol unit tests; with ALOUD_INTEGRATION=1, a real agentd round trip (ping only, no LLM).
         .testTarget(name: "AgentKitTests", dependencies: ["AgentKit"]),
-        // Renders the island's states to PNG when INSTRUCTFLOW_RENDER_DIR is set (visual check).
+        // Renders the island's states to PNG when ALOUD_RENDER_DIR is set (visual check).
         .testTarget(name: "AgentUITests", dependencies: ["AgentUI", "AgentKit"]),
     ]
 )

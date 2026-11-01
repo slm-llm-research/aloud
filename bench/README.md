@@ -1,14 +1,14 @@
-# InstructFlow benchmarks
+# Aloud benchmarks
 
 ```bash
-cd voice-flow/bench
+cd aloud/bench
 uv run python build_dataset.py                       # LibriSpeech sample + synthetic tech/filler clips -> data/manifest.jsonl
 uv run python stt_bench.py --engines parakeet,whisper_turbo,eleven_batch,eleven_rt,groq_turbo
 uv run python stt_bench.py --engines parakeet,eleven_batch --sets tech,filler --keyterms
 uv run python cleanup_bench.py --engines qwen3_1.7b,qwen3_4b,groq_gptoss20b,haiku55
 ```
 
-Cloud engines need keys in `voice-flow/.env` (see `.env.example`); they are skipped otherwise.
+Cloud engines need keys in `aloud/.env` (see `.env.example`); they are skipped otherwise.
 Results land in `results/` (per-item CSV/JSONL + summary JSON); the summary table is printed at the end.
 
 Caveats: `tech`/`filler` audio is macOS `say` TTS, not your voice; latency here is in-process
@@ -28,7 +28,7 @@ uv run python scenario_eval.py report               # results/scenario-report-<s
 uv run python scenario_eval.py import observed.tsv  # results copied by hand: id<TAB>observed[<TAB>heard]
 ```
 
-The app writes one JSON line per dictation to `~/Library/Logs/InstructFlow/dictations.jsonl` (what
+The app writes one JSON line per dictation to `~/Library/Logs/Aloud/dictations.jsonl` (what
 speech-to-text heard, what was typed, the app, the mode, latency), which `run` pairs with the scenario
 on screen. Sessions are named by date (`--session` to choose) and resume where you left off.
 

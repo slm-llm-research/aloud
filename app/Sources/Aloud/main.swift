@@ -3,7 +3,7 @@ import AudioKit
 import CleanupKit
 import HotkeyKit
 import InsertKit
-import InstructFlowCore
+import AloudCore
 import STTKit
 
 @MainActor
@@ -42,17 +42,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     static let supportDir = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/InstructFlow")
+        .appendingPathComponent("Library/Application Support/Aloud")
     static let dictionaryURL = supportDir.appendingPathComponent("dictionary.txt")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // First launch after the rename from Murmur: bring keys, dictionary and agent folders along.
-        let legacy = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Murmur")
-        if let copied = try? DataMigration.migrate(from: legacy, to: Self.supportDir), !copied.isEmpty {
-            dlog("migrated from Murmur: \(copied.joined(separator: ", "))")
+        // First launch after a rename (InstructFlow, earlier Murmur): bring keys, dictionary, agent
+        // folders and the agent audit log (Task Center history) along. Logs go first, before
+        // dlog creates the new log folder.
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        var migrated: [String] = []
+        for sub in ["Library/Logs", "Library/Application Support"] {
+            for legacy in ["InstructFlow", "Murmur"] {
+                let copied = (try? DataMigration.migrate(from: home.appendingPathComponent("\(sub)/\(legacy)"),
+                                                         to: home.appendingPathComponent("\(sub)/Aloud"))) ?? []
+                migrated += copied.map { "\(legacy)/\($0)" }
+            }
         }
+        if !migrated.isEmpty { dlog("migrated: \(migrated.joined(separator: ", "))") }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "InstructFlow")
+        statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Aloud")
         let menu = NSMenu()
         menu.delegate = self
         for item in [statusLine, listenerLine, keysLine, agentLine, lastLine] { menu.addItem(item) }
@@ -63,6 +71,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(withTitle: "Right Shift + Right ⌘: give the agent a task", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(tasksItem)
+        let center = NSMenuItem(title: "Task Center…", action: #selector(openTaskCenter), keyEquivalent: "t")
+        center.target = self
+        menu.addItem(center)
         menu.addItem(NSMenuItem(title: "Stop All Agent Tasks", action: #selector(stopAgents), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Agent Settings…", action: #selector(editAgentSettings),
                                 keyEquivalent: ""))
@@ -77,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Permissions…", action: #selector(showPermissions), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Open Log", action: #selector(openLog), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Quit InstructFlow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Aloud", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
 
         agent = AgentController(hud: hud)
@@ -126,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openAudit() {
-        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/InstructFlow/agent-audit.jsonl")
+        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Aloud/agent-audit.jsonl")
         if FileManager.default.fileExists(atPath: url.path) { NSWorkspace.shared.open(url) }
     }
 
@@ -195,7 +206,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         cleanupItem.state = cleanupEnabled ? .on : .off
     }
 
-    /// Recent agent tasks, newest first; choosing one opens it in the island.
+    /// Recent agent tasks, newest first; choosing one opens it in the Task Center.
     private func refreshTasks() {
         guard let sub = tasksItem.submenu else { return }
         sub.removeAllItems()
@@ -206,6 +217,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             sub.addItem(NSMenuItem(title: "No tasks yet: hold Right Shift + Right ⌘ and speak", action: nil, keyEquivalent: ""))
             return
         }
+        let open = NSMenuItem(title: "Open Task Center…", action: #selector(openTaskCenter), keyEquivalent: "")
+        open.target = self
+        sub.addItem(open)
+        sub.addItem(.separator())
         for t in tasks.prefix(10) {
             let glyph: String
             switch t.state {
@@ -214,6 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case .done: glyph = "✓"
             case .failed: glyph = "✕"
             case .stopped: glyph = "■"
+            case .interrupted: glyph = "‖"
             }
             let what = t.heard.isEmpty ? t.currentActivity : t.heard
             let detail = t.isActive ? t.currentActivity : t.summary
@@ -227,8 +243,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showTask(_ sender: NSMenuItem) {
-        if let id = sender.representedObject as? String { agent.island.focus(id) }
+        if let id = sender.representedObject as? String { agent.center.show(select: id) }
     }
+
+    @objc private func openTaskCenter() { agent.center.show() }
 
     func menuWillOpen(_ menu: NSMenu) { refreshMenu() }
 
@@ -249,7 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         try? fm.createDirectory(at: Self.supportDir, withIntermediateDirectories: true)
         guard !fm.fileExists(atPath: Self.dictionaryURL.path) else { return }
         let starter = """
-        # InstructFlow personal dictionary. Changes apply when you save and click Edit Dictionary… again,
+        # Aloud personal dictionary. Changes apply when you save and click Edit Dictionary… again,
         # or on next launch.
         #
         # A plain line is a term to always spell exactly (sent to the recognizer and the cleanup AI):
@@ -299,7 +317,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showPermissions() {
         let p = Permissions.current()
         let alert = NSAlert()
-        alert.messageText = "InstructFlow permissions"
+        alert.messageText = "Aloud permissions"
         alert.informativeText = """
         Microphone: \(p.microphone ? "✓" : "✗  (to hear you)")
         Accessibility: \(p.accessibility ? "✓" : "✗  (to type into apps)")

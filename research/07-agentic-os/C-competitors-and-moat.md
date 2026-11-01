@@ -1,4 +1,4 @@
-# C. Competitive Landscape and Moat Features for InstructFlow
+# C. Competitive Landscape and Moat Features for Aloud
 
 *Research date: 2026-10-31. Scope: voice-first agentic layers on macOS. This builds on the Wispr Flow / OpenWhispr teardowns and macOS integration notes already in `research/`; it does not repeat them.*
 
@@ -7,7 +7,7 @@
 1. **Voice-input apps** (Wispr Flow, Superwhisper, VoiceInk, FluidVoice, OpenWhispr, Aqua, Willow, Monologue). These are very good at speech to text in any text field. Their "agent" features stop at rewriting a selection, asking a chatbot a question, or opening an app. None of them runs governed, multi-step tool calls against local files, Mail, a shell, or Claude Code.
 2. **Agent platforms** (ChatGPT desktop with Codex, Claude Cowork / computer use / Claude in Chrome, Perplexity Personal Computer, Siri AI in macOS 27, Raycast AI 2.x, Simular). These have strong tool use, but voice is either a separate chat surface (ChatGPT Voice, Gemini Live) or missing (Cowork, Raycast agent chat, Simular). None of them is built on dictation-grade input, an approval model you can audit, or published reliability numbers.
 
-InstructFlow already sits in the gap between the two: a dictation core with a mode router and fidelity guardrail, plus agentd with typed Effects, policy, an audit log and an eval bench. The moat is to own **trustworthy voice-to-action on the local Mac**: measurably reliable, explicitly governed, screen- and context-aware, and open.
+Aloud already sits in the gap between the two: a dictation core with a mode router and fidelity guardrail, plus agentd with typed Effects, policy, an audit log and an eval bench. The moat is to own **trustworthy voice-to-action on the local Mac**: measurably reliable, explicitly governed, screen- and context-aware, and open.
 
 ---
 
@@ -20,7 +20,7 @@ InstructFlow already sits in the gap between the two: a dictation core with a mo
 | **Wispr Flow** | Dictation with styles and dictionary. **Command Mode** (experimental; Fn+Ctrl): edit or draft from the current text box or selection, or send a search to Perplexity. No multi-step actions. Bot-free Notetaker. A **remote MCP server** gives *read-only* access to meeting notes, transcripts and calendar; clients cannot create or edit content, or read dictation history. | Free 2k words/wk; Pro $15/mo ($12 annual); Growth $18-23/user; Growth+Notetaker $26-33 | Closed | About $81M raised. Says it wants to grow into an assistant for "messaging, note-taking, reminders" [1][2][3][4] |
 | **Superwhisper** | Modes: a Whisper model plus an optional LLM prompt, assigned per app. Local models. No agent. A request for "tool calling via MCP" on its public board is still *Pending* (44 votes). | Free (small models); Pro $8.49/mo, $84.99/yr; Lifetime $249.99 | Closed | Mac, Windows, iOS [5][6] |
 | **VoiceInk** | Power Mode (settings per app or URL), Smart Modes, BYO-key AI enhancement, Assistant Mode (ask an LLM by voice). No MCP or agent. | $25-49 one-time | **GPL-3.0** (about 6.5k stars) | [7] |
-| **FluidVoice** | Local ASR (Parakeet, Nemotron, Whisper, Apple), Write Mode, prompts per app, **Command Mode: "control your Mac by voice"** (launch apps, run Shortcuts, system actions). No MCP or agent. | Free | **GPL-3.0** since Feb 2026 (Apache before); about 12.4k stars | The closest open-source peer to InstructFlow's agent direction [8] |
+| **FluidVoice** | Local ASR (Parakeet, Nemotron, Whisper, Apple), Write Mode, prompts per app, **Command Mode: "control your Mac by voice"** (launch apps, run Shortcuts, system actions). No MCP or agent. | Free | **GPL-3.0** since Feb 2026 (Apache before); about 12.4k stars | The closest open-source peer to Aloud's agent direction [8] |
 | **OpenWhispr** | v1.6+: **Agent mode**. The voice agent types its answer at the cursor. A chat agent can search and write notes, search the web and read the calendar. BYO provider or a local model. Bot-free meetings with Google Calendar. No MCP or approval model is documented. | Free plus cloud tier | Open (MIT per earlier teardown) | [9][10] |
 | **Aqua Voice** | Avalon ASR (vendor claims 97.4% on its own AISpeak-10), "Deep Context," **MCP/CLI access**, Realtime Mode and voice commands (Max). Cloud only. | Pro $10-12/mo; Max $19-24/mo | Closed | [11] |
 | **Willow** | Style memory per app, AI Mode, "Hey Willow" desktop Q&A assistant, Cursor/IDE support, offline mode (Mac/iOS). No agent actions. | Free 2k words/wk; $12-15/mo | Closed | Claims 200 ms latency (vendor figure) [12] |
@@ -52,7 +52,7 @@ InstructFlow already sits in the gap between the two: a dictation core with a mo
 
 Legend: ● strong / shipped · ◐ partial / beta / limited · ○ absent · ? unclear
 
-| Capability | Wispr | Super-whisper | VoiceInk | Fluid-Voice | Open-Whispr | Aqua | Talon | Siri macOS 27 | ChatGPT desk | Claude (Cowork/CU/Chrome) | Raycast | Perplexity PC | Littlebird / Screenpipe | **InstructFlow (today)** |
+| Capability | Wispr | Super-whisper | VoiceInk | Fluid-Voice | Open-Whispr | Aqua | Talon | Siri macOS 27 | ChatGPT desk | Claude (Cowork/CU/Chrome) | Raycast | Perplexity PC | Littlebird / Screenpipe | **Aloud (today)** |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Dictation-grade insertion in any app | ● | ● | ● | ● | ● | ● | ● | ◐ | ○ | ◐ | ◐ | ○ | ○ | ● |
 | Intent/app-aware cleanup | ● | ● | ● | ● | ◐ | ● | ○ | ◐ | ○ | ○ | ◐ | ○ | ○ | ● (7 modes + fidelity guard) |
@@ -101,13 +101,13 @@ Legend: ● strong / shipped · ◐ partial / beta / limited · ○ absent · ? 
 - **Reading out output.** Speech is linear and transient. NN/g found that assistants work only for "very limited queries with simple, short answers" [41]. Lists, diffs and tables belong on screen.
 - **Undiscoverable commands.** Voice offers no affordances, and recall-heavy command sets add memory load [42].
 
-**Design rule for InstructFlow:** speak the *intent*, look at the *evidence*, and touch or glance to *commit* when the stakes are high.
+**Design rule for Aloud:** speak the *intent*, look at the *evidence*, and touch or glance to *commit* when the stakes are high.
 
 ### 2.2 Latency expectations
 
 - In human conversation the median gap between turns is about **200 ms** across 10 languages (Stivers et al., 2009, as summarised in [43]). Voice agent practitioners use about **800 ms** voice-to-voice as the limit for feeling natural [44].
 - For **command-and-act** systems, as opposed to conversation, the usual HCI thresholds apply: under 100 ms feels instant (keypress to HUD state change), under 1 s keeps the flow of thought (first visible acknowledgement), and under 10 s holds attention (task completion, or else show progress).
-- Recommended budgets for InstructFlow:
+- Recommended budgets for Aloud:
 
 | Stage | Target p50 / p95 |
 |---|---|
@@ -121,8 +121,8 @@ Legend: ● strong / shipped · ◐ partial / beta / limited · ○ absent · ? 
 
 ### 2.3 Confirmation and approval design for risky actions
 
-- **Choose confirmation by risk, not by habit.** Conversation-design practice: implicit confirmation ("Opening Figma") for reversible low-risk actions; explicit confirmation for irreversible or external effects; *no* voice-only confirmation for spend, delete or send. This matches InstructFlow's current policy.
-- **Approval fatigue is real, and an approval written by the agent can lie.** Weng (2026) shows that a compromised agent can describe a harmless action while running a different one. The fix is *Consent Integrity*: a trusted mediator renders the approval from the actual action [38]. InstructFlow's typed ToolContracts allow exactly this: render the card from the arguments, never from the model's narration.
+- **Choose confirmation by risk, not by habit.** Conversation-design practice: implicit confirmation ("Opening Figma") for reversible low-risk actions; explicit confirmation for irreversible or external effects; *no* voice-only confirmation for spend, delete or send. This matches Aloud's current policy.
+- **Approval fatigue is real, and an approval written by the agent can lie.** Weng (2026) shows that a compromised agent can describe a harmless action while running a different one. The fix is *Consent Integrity*: a trusted mediator renders the approval from the actual action [38]. Aloud's typed ToolContracts allow exactly this: render the card from the arguments, never from the model's narration.
 - **The industry is drifting toward classifiers instead of per-step consent** (Claude in Chrome [22]). That is a positioning opening: "you always see what will actually run."
 - **Voice-specific rules:**
   - Read back the *object* and the *effect*, not the plan. Say "Send to Priya, subject 'Q3 numbers', 2 attachments", not "I'll send the email."
@@ -162,7 +162,7 @@ Legend: ● strong / shipped · ◐ partial / beta / limited · ○ absent · ? 
 
 ---
 
-## 3. Moat features for InstructFlow (22)
+## 3. Moat features for Aloud (22)
 
 Difficulty: S = days, M = 1-3 weeks, L = more than a month (solo developer).
 
@@ -296,10 +296,10 @@ Difficulty: S = days, M = 1-3 weeks, L = more than a month (solo developer).
 
 ### E. Platform and ecosystem
 
-**21. InstructFlow as an MCP server ("voice I/O for any agent").**
+**21. Aloud as an MCP server ("voice I/O for any agent").**
 - *Description:* Expose `ask_user_by_voice`, `speak_status`, `get_focused_context`, `request_approval` (rendered with Consent Integrity) and `get_timeline` as MCP tools. Claude Code, Cursor or Codex can then interrupt the user by voice and get a governed approval.
 - *Why competitors lack it:* Wispr's MCP is read-only notes [4]; nobody offers an approval channel or a human-in-the-loop voice channel as MCP.
-- *Value:* InstructFlow becomes infrastructure that other agents depend on.
+- *Value:* Aloud becomes infrastructure that other agents depend on.
 - *Difficulty:* M. *Depends on:* the agentd socket and the HUD.
 
 **22. Reproducible "trace cards" for sharing and debugging.**

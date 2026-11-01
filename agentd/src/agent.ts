@@ -45,6 +45,14 @@ export interface AgentDeps {
 
 export async function runTask(req: TaskRequest, deps: AgentDeps, signal: AbortSignal): Promise<string> {
   deps.audit.write("task.start", { taskId: req.taskId, utterance: req.utterance, context: req.context });
+  const usage = { inputTokens: 0, outputTokens: 0 };
+  const emit: Emit = (method, params) => {
+    if (method === "task.metrics") {
+      usage.inputTokens = Number(params.inputTokens ?? 0);
+      usage.outputTokens = Number(params.outputTokens ?? 0);
+    }
+    deps.emit?.(method, params);
+  };
   const gated: GatedTool[] = deps.tools.map((contract) => ({
     contract,
     call: (input) =>
@@ -53,7 +61,7 @@ export async function runTask(req: TaskRequest, deps: AgentDeps, signal: AbortSi
         broker: deps.broker,
         audit: deps.audit,
         progress: (m) => deps.progress(req.taskId, m),
-        ...(deps.emit ? { emit: deps.emit } : {}),
+        emit,
       }),
   }));
   // The checklist changes nothing on the machine, so it skips the gate and goes straight to the app.
@@ -64,23 +72,23 @@ export async function runTask(req: TaskRequest, deps: AgentDeps, signal: AbortSi
       if (!parsed.success) return "Invalid plan: send {steps: [{content, status}]}.";
       const steps: Plan = parsed.data.steps;
       deps.audit.write("task.plan", { taskId: req.taskId, steps });
-      deps.emit?.("task.plan", { taskId: req.taskId, steps });
+      emit("task.plan", { taskId: req.taskId, steps });
       return updatePlan.run(parsed.data, { cfg: deps.cfg, signal });
     },
   });
   try {
-    const summary = await deps.planner.run(req, gated, signal, deps.emit);
-    deps.audit.write("task.done", { taskId: req.taskId, summary });
+    const summary = await deps.planner.run(req, gated, signal, emit);
+    deps.audit.write("task.done", { taskId: req.taskId, summary, ...usage });
     return summary;
   } catch (e) {
     const msg = signal.aborted ? "cancelled" : e instanceof Error ? e.message : String(e);
-    deps.audit.write("task.error", { taskId: req.taskId, error: msg });
+    deps.audit.write("task.error", { taskId: req.taskId, error: msg, ...usage });
     throw new Error(msg);
   }
 }
 
 export function systemPrompt(cfg: AgentConfig): string {
-  return `You are InstructFlow's task agent on the user's Mac. The user spoke a task out loud; it arrives as a speech-to-text transcript and may contain recognition errors - interpret it sensibly.
+  return `You are Aloud's task agent on the user's Mac. The user spoke a task out loud; it arrives as a speech-to-text transcript and may contain recognition errors - interpret it sensibly.
 
 Use the tools to do the task. Rules:
 - Every step that changes something (writing files, running commands, delegating to Claude Code) is shown to the user for approval. If a step is DECLINED or BLOCKED, stop and report it; never retry it or find another way to achieve the same effect.

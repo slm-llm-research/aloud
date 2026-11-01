@@ -1,7 +1,7 @@
 import Foundation
 
-/// Starts instructflow-agentd (`node agentd/dist/main.js`) as a child of the app and restarts it if it
-/// crashes. agentd exits when its stdin closes, so it never outlives InstructFlow.
+/// Starts aloud-agentd (`node agentd/dist/main.js`) as a child of the app and restarts it if it
+/// crashes. agentd exits when its stdin closes, so it never outlives Aloud.
 @MainActor
 public final class AgentProcess {
     public struct Config: Equatable, Sendable {

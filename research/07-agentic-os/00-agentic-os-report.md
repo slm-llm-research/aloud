@@ -1,6 +1,6 @@
 # 07. From Dictation to a Voice-Driven Agentic OS: Research Report
 
-*Research date: 2026-10-31. Scope: how InstructFlow can grow from "dictation that keeps your words" plus a task agent into a voice layer that safely acts across the Mac, web services and developer tools.*
+*Research date: 2026-10-31. Scope: how Aloud can grow from "dictation that keeps your words" plus a task agent into a voice layer that safely acts across the Mac, web services and developer tools.*
 
 This is the synthesis. Four appendices hold the detailed research, tables and sources:
 
@@ -17,7 +17,7 @@ Facts about third-party products were checked against sources as of 2026-10-31 a
 
 ## 1. TL;DR
 
-1. **The market has split, and the gap sits between the two halves.** Dictation apps (Wispr Flow, Superwhisper, VoiceInk, FluidVoice, OpenWhispr, Aqua, Willow) stop at "edit the selection" or "ask a chatbot". Agent platforms (ChatGPT + Codex, Claude Cowork / computer use / Claude in Chrome, Perplexity, Raycast, Siri with App Intents) treat voice as a side chat. **No product combines dictation-grade voice with a governed local agent**: typed effects, approvals built from the actual tool call, an audit log, and published reliability numbers. InstructFlow already has most of that foundation (`agentd`'s ToolContracts, Effects, gate, audit log and the `bench/` harness). The strategy is to extend it rather than pivot. [C §1.4]
+1. **The market has split, and the gap sits between the two halves.** Dictation apps (Wispr Flow, Superwhisper, VoiceInk, FluidVoice, OpenWhispr, Aqua, Willow) stop at "edit the selection" or "ask a chatbot". Agent platforms (ChatGPT + Codex, Claude Cowork / computer use / Claude in Chrome, Perplexity, Raycast, Siri with App Intents) treat voice as a side chat. **No product combines dictation-grade voice with a governed local agent**: typed effects, approvals built from the actual tool call, an audit log, and published reliability numbers. Aloud already has most of that foundation (`agentd`'s ToolContracts, Effects, gate, audit log and the `bench/` harness). The strategy is to extend it rather than pivot. [C §1.4]
 2. **Positioning line:** *"The open-source voice layer for your Mac that does things, shows you exactly what it will do before it does it, and publishes how often it gets it right."* That plays to an evals and agent-safety background, which is what Anthropic, OpenAI and DeepMind hire for. [C §3]
 3. **Three bridges get you "everything on the Mac":**
    - **`macbridge`**: a Swift helper bundled in the app, exposed to agentd as a local MCP server over stdio. It covers Calendar, Reminders, Contacts, Spotlight, folder watching, Mail/Notes via AppleScript, Shortcuts, windows, screen + OCR, and Accessibility.
@@ -43,7 +43,7 @@ Facts about third-party products were checked against sources as of 2026-10-31 a
 
 ---
 
-## 2. Where InstructFlow stands today
+## 2. Where Aloud stands today
 
 What already exists, read from the code (`app/`, `agentd/`, `bench/`):
 
@@ -64,7 +64,7 @@ The architecture is already the right shape. `ToolContract` + `Effect` + `gatedR
 
 ```mermaid
 flowchart TB
-    subgraph App["InstructFlow.app (Swift, one signing identity, all TCC usage strings)"]
+    subgraph App["Aloud.app (Swift, one signing identity, all TCC usage strings)"]
         HK[HotkeyKit<br>dictate / task / command / approve] --> STT[STTKit<br>Scribe RT + Parakeet]
         STT --> R{Router}
         R -- dictation --> CK[CleanupKit + guardrail] --> INS[InsertKit]
@@ -97,7 +97,7 @@ flowchart TB
 
 Four architectural decisions, each argued in an appendix:
 
-1. **Write `macbridge` yourself, in Swift, inside the app bundle.** Don't mount community Mac MCP servers. macOS's privacy system (TCC) credits every permission prompt to the "responsible process". With an app → agentd → macbridge chain, every prompt names InstructFlow and every grant is scoped to it. Third-party servers would each bring their own identity and broad, unaudited tools. Borrow code from the MIT-licensed ones (iMCP for Calendar/Contacts, Peekaboo's UI-map approach, macos-automator-mcp's script library); apple-mcp was archived in January 2026. [A §A.0, §A.2]
+1. **Write `macbridge` yourself, in Swift, inside the app bundle.** Don't mount community Mac MCP servers. macOS's privacy system (TCC) credits every permission prompt to the "responsible process". With an app → agentd → macbridge chain, every prompt names Aloud and every grant is scoped to it. Third-party servers would each bring their own identity and broad, unaudited tools. Borrow code from the MIT-licensed ones (iMCP for Calendar/Contacts, Peekaboo's UI-map approach, macos-automator-mcp's script library); apple-mcp was archived in January 2026. [A §A.0, §A.2]
 2. **Run a client-side MCP host in agentd, not the Anthropic API's MCP connector, for anything that writes.** The connector runs tool calls on Anthropic's side within one API call, so agentd can't step in for approval, and it can't reach local stdio servers. Use the v2 TypeScript MCP client against spec 2026-07-28, pin every server version and tool-list hash, and keep OAuth tokens in the Keychain, brokered by the Swift app and never placed in model context. [B §0, §1.7]
 3. **Move coding-agent orchestration to the Claude Agent SDK.** Its `canUseTool` callback maps one-to-one onto approval cards, and `setPermissionMode()` lets "accept edits from now on" work by voice. Keep `claude -p --output-format stream-json` as a fallback, and put Codex and Cursor behind the same `FleetBackend` interface. Launch agents with `--bare` in untrusted repos, because a `-p` run otherwise executes the repo's hooks and `.mcp.json` servers without a trust prompt. [D §0, §1.2]
 4. **Route each action to the most structured interface available:** native framework > AppleScript dictionary > Shortcuts / App Intents > URL scheme > Accessibility > screenshot + OCR > computer use. Each step down is slower and harder to verify, so it gets a stricter approval level. Computer use sits last, behind an explicit "takeover" approval with a visible screen border. [A §A.0]
@@ -127,7 +127,7 @@ Features are grouped by the surface they touch. Each row says what you say, what
 | "Text my wife I'm leaving in 10 minutes" | Contacts resolve → Messages send, with the exact text on the card | send_message (click only) | M |
 | "Turn on Work focus until 6" / "Dark mode" / "Volume 30" | Tagged Shortcuts / System Events, with stored undo | system_settings:reversible | S |
 | "Join my next meeting" | EventKit next event → extract the Zoom/Meet link → open | read_private, open_url | S |
-| "Run my morning shortcut" | `shortcuts run` on an InstructFlow-tagged shortcut (the official route to other apps' App Intents) | per tag | S |
+| "Run my morning shortcut" | `shortcuts run` on an Aloud-tagged shortcut (the official route to other apps' App Intents) | per tag | S |
 | "Photos of the whiteboard from Tuesday into a note" | PhotoKit date fetch + Vision OCR + Notes create | read_private, write_local | M |
 
 ### 4.2 Web services (via the MCP host)
@@ -239,7 +239,7 @@ From the competitor survey [C §1.4, §3] and developer research [D §6], these 
 | 7 | **Eval-regression narrator.** After an agent change or new checkpoint, `bench/` runs in the background and speaks only slice-level regressions | Ties coding agents to evals; no orchestrator does this | M |
 | 8 | **Voice macros learned from repetition.** Repeated task patterns are proposed as named, testable macros ("You've done this three times. Save it as 'release prep'?") | No product learns reusable workflows from use | L |
 | 9 | **"What was I doing?" timeline memory** built from events (audit log, git, window focus, files touched), not continuous screen recording | Rewind is gone; Screenpipe records everything with no agent; Granola and Littlebird keep data off-device | M |
-| 10 | **InstructFlow as an MCP server.** Exposes "voice I/O" (ask the user, speak a status, get approval) to *any* agent, Claude Code included | Makes InstructFlow infrastructure rather than just an app | M |
+| 10 | **Aloud as an MCP server.** Exposes "voice I/O" (ask the user, speak a status, get approval) to *any* agent, Claude Code included | Makes Aloud infrastructure rather than just an app | M |
 | 11 | **Accessibility profile.** Talon-style hands-free control with an LLM behind it, for RSI and motor-impairment users | Talon 1.0 has no LLM; macOS Voice Control has no text-editing commands | L |
 
 ### Voice UX rules to build in from the start [C §2]
@@ -267,7 +267,7 @@ Each phase ships something demo-able and adds its own eval scenarios to `bench/`
 | **6. Context + Command mode** | AX field role, selection, browser URL, Finder selection; deixis resolver; Command mode (edit selection by voice) | Phase 1 | 1–2 weeks |
 | **7. Rules + ML** | FSEvents standing rules; conditional rules; Python MCP sidecar for W&B/MLflow/HF; `spend_compute` budget cards; training watcher; eval-regression narrator | Phases 2, 5 | 2 weeks |
 | **8. Personal + finance** | Read-only finance bundle; learned macros; timeline memory; Shortcuts bridge for App Intents | Phases 2, 5 | 2 weeks |
-| **9. Publish** | Reliability Ledger page, trace cards, demo videos, InstructFlow-as-MCP-server, write-up | everything | ongoing |
+| **9. Publish** | Reliability Ledger page, trace cards, demo videos, Aloud-as-MCP-server, write-up | everything | ongoing |
 
 **If you only do three things:** phase 0 (it makes everything after it safe), phase 4 (the flagship demo), and the ledger from phase 9 (the differentiator nobody can copy quickly).
 
@@ -279,7 +279,7 @@ Each phase ships something demo-able and adds its own eval scenarios to `bench/`
 |---|---|
 | **Prompt injection** through email, web pages, PR bodies, CI logs or screen text | Taint tracking; exact-payload approvals; the lethal-trifecta check; instructions in tool output are never turned into plan steps |
 | **MCP supply chain** (tool poisoning, rug pulls; real incidents include the postmark-mcp backdoor and the GitHub MCP injection) | Curated allowlist; exact versions + lockfile hashes; tool-list hash pinning that disables changed tools; sandboxed stdio servers; never `npx -y pkg@latest` |
-| **TCC confusion** (grants landing on Terminal during development) | Launch agentd only from the app; macbridge warns when its responsible process isn't InstructFlow; stable signing identity (already done) |
+| **TCC confusion** (grants landing on Terminal during development) | Launch agentd only from the app; macbridge warns when its responsible process isn't Aloud; stable signing identity (already done) |
 | **Screen Recording** needs monthly re-confirmation on recent macOS | Say so during onboarding; prefer AX text before screenshots |
 | **Cost** of Opus planning plus several fleet agents | Haiku-class summariser; fleet cap (default 4); per-agent `--max-budget-usd`; cost shown on the HUD |
 | **Spoken approval spoofing** (someone else in the room, or audio playing) | Spoken approval only for reversible, low-risk classes; never for send, spend, publish, delete or ui_input |

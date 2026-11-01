@@ -154,10 +154,10 @@ def delta(b, a, higher_better):
 
 def markdown(data):
     env = data["environment"]
-    L = ["# InstructFlow benchmarks", "",
+    L = ["# Aloud benchmarks", "",
          f"Measured {data['generated']} with the scenario eval harness ([`bench/scenario_eval.py`](bench/scenario_eval.py)). "
          "Interactive version: [`docs/results/index.html`](docs/results/index.html) "
-         "(served at https://slm-llm-research.github.io/instructflow/results/). Regenerate everything with "
+         "(served at https://slm-llm-research.github.io/aloud/results/). Regenerate everything with "
          "`cd bench && uv run python export_results.py`.", "",
          "## Before and after", ""]
     for c in data["comparisons"]:
@@ -201,7 +201,7 @@ def markdown(data):
           "ChatGPT, Claude Code and a shell. They cover self-corrections, negations, numbers, names, slang, stutters, lists, "
           "email layout, shell symbols, and five background-noise variants. Each has the expected text and checks.",
           "- **Real voice:** the author spoke each scenario into the named app with the installed app build. The app records "
-          "what speech-to-text heard and what it typed (`~/Library/Logs/InstructFlow/dictations.jsonl`), and `scenario_eval.py run` "
+          "what speech-to-text heard and what it typed (`~/Library/Logs/Aloud/dictations.jsonl`), and `scenario_eval.py run` "
           "pairs each record with its scenario.",
           "- **Before/after on identical input:** `scenario_eval.py reclean` runs the current cleanup code over the transcripts "
           "speech-to-text produced in the real-voice session, so speech recognition is held fixed.",

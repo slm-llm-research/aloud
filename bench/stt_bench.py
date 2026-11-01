@@ -181,7 +181,7 @@ def main():
 
     for name in args.engines.split(","):
         if name in NEEDS_KEY and not os.environ.get(NEEDS_KEY[name]):
-            print(f"skip {name}: {NEEDS_KEY[name]} not set in voice-flow/.env")
+            print(f"skip {name}: {NEEDS_KEY[name]} not set in aloud/.env")
             continue
         t0 = time.perf_counter()
         eng = ENGINES[name]()

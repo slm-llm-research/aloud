@@ -1,8 +1,8 @@
 #!/bin/bash
-# Builds InstructFlow.app (release) into app/build/ and signs it.
+# Builds Aloud.app (release) into app/build/ and signs it.
 #
 #   scripts/bundle.sh            # ad-hoc signature
-#   SIGN_ID="Murmur Dev" scripts/bundle.sh   # a stable identity, so macOS keeps permissions across rebuilds
+#   SIGN_ID="Murmur Dev Signing" scripts/bundle.sh   # a stable identity, so macOS keeps permissions across rebuilds
 #
 # Ad-hoc signing changes the app's identity on every build, so macOS asks for Accessibility /
 # Input Monitoring again after each rebuild. A stable SIGN_ID avoids that (PLAN.md §12).
@@ -11,11 +11,11 @@ cd "$(dirname "$0")/.."
 
 swift build -c release
 BIN=.build/release
-APP=build/InstructFlow.app
+APP=build/Aloud.app
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN/InstructFlow" "$APP/Contents/MacOS/InstructFlow"
+cp "$BIN/Aloud" "$APP/Contents/MacOS/Aloud"
 for b in "$BIN"/*.bundle; do [ -e "$b" ] && cp -R "$b" "$APP/Contents/Resources/"; done
 
 VERSION=$(git -C .. describe --tags --always 2>/dev/null || echo "0.1.0")
@@ -24,16 +24,16 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key><string>ai.instructflow.InstructFlow</string>
-  <key>CFBundleName</key><string>InstructFlow</string>
-  <key>CFBundleExecutable</key><string>InstructFlow</string>
+  <key>CFBundleIdentifier</key><string>ai.aloud.Aloud</string>
+  <key>CFBundleName</key><string>Aloud</string>
+  <key>CFBundleExecutable</key><string>Aloud</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
   <key>CFBundleVersion</key><string>${VERSION}</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
-  <string>InstructFlow listens only while you hold Right Shift (or after you double-tap it) to turn your speech into text.</string>
+  <string>Aloud listens only while you hold Right Shift (or after you double-tap it) to turn your speech into text.</string>
 </dict>
 </plist>
 PLIST
@@ -58,7 +58,7 @@ if [ -z "${SIGN_ID:-}" ] && [ -f "$KC" ]; then
 fi
 echo "Signing with: ${SIGN_ID:-ad-hoc (permissions reset on every rebuild)}"
 codesign --force --deep --options runtime \
-  --entitlements scripts/InstructFlow.entitlements \
+  --entitlements scripts/Aloud.entitlements \
   ${KEYCHAIN_ARGS[@]+"${KEYCHAIN_ARGS[@]}"} \
   --sign "${SIGN_ID:--}" "$APP"
 codesign --verify --verbose=1 "$APP"

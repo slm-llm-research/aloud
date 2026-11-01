@@ -19,7 +19,7 @@ export interface AgentConfig {
   claudePath: string;
 }
 
-export const SUPPORT_DIR = path.join(homedir(), "Library/Application Support/InstructFlow");
+export const SUPPORT_DIR = path.join(homedir(), "Library/Application Support/Aloud");
 
 export function defaultConfig(home = homedir()): AgentConfig {
   return {
@@ -30,13 +30,13 @@ export function defaultConfig(home = homedir()): AgentConfig {
     effort: "low",
     maxIterations: 12,
     approvalTimeoutMs: 120_000,
-    socketPath: path.join(home, "Library/Application Support/InstructFlow/agentd.sock"),
-    auditPath: path.join(home, "Library/Logs/InstructFlow/agent-audit.jsonl"),
+    socketPath: path.join(home, "Library/Application Support/Aloud/agentd.sock"),
+    auditPath: path.join(home, "Library/Logs/Aloud/agent-audit.jsonl"),
     claudePath: path.join(home, ".local/bin/claude"),
   };
 }
 
-/** Defaults overlaid with ~/Library/Application Support/InstructFlow/agent.json (if present). */
+/** Defaults overlaid with ~/Library/Application Support/Aloud/agent.json (if present). */
 export function loadConfig(file = path.join(SUPPORT_DIR, "agent.json"), home = homedir()): AgentConfig {
   const cfg = defaultConfig(home);
   let user: Partial<AgentConfig> = {};
@@ -53,7 +53,7 @@ export function loadConfig(file = path.join(SUPPORT_DIR, "agent.json"), home = h
   return merged;
 }
 
-/** Reads ANTHROPIC_API_KEY from the environment or InstructFlow's keys file. */
+/** Reads ANTHROPIC_API_KEY from the environment or Aloud's keys file. */
 export function loadAnthropicKey(file = path.join(SUPPORT_DIR, "keys.env")): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
   try {

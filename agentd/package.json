@@ -1,9 +1,9 @@
 {
-  "name": "instructflow-agentd",
+  "name": "aloud-agentd",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "InstructFlow's local agent daemon: runs spoken tasks with declared-effect tools and per-step approval.",
+  "description": "Aloud's local agent daemon: runs spoken tasks with declared-effect tools and per-step approval.",
   "main": "dist/main.js",
   "engines": {
     "node": ">=22"

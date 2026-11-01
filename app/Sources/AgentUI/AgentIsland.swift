@@ -26,6 +26,8 @@ public final class AgentIsland {
     public let store: TaskStore
     public var onDecision: ((AgentProtocol.ApprovalRequest, Bool) -> Void)?
     public var onStop: ((String) -> Void)?
+    /// "Open Task Center" in the drawer.
+    public var onOpenCenter: ((String) -> Void)?
 
     private let panel: IslandPanel
     private let host: NSHostingView<IslandRoot>
@@ -97,6 +99,10 @@ public final class AgentIsland {
             self.layout()
         }
         actions.becomeKey = { [weak self] in self?.panel.makeKey() }
+        actions.openCenter = { [weak self] id in
+            self?.state.pinnedTask = nil
+            self?.onOpenCenter?(id)
+        }
         host.rootView = IslandRoot(store: store, state: state, notch: notchHeight, actions: actions)
     }
 
@@ -153,6 +159,7 @@ struct IslandActions {
     var dismiss: (String) -> Void = { _ in }
     var hover: (Bool) -> Void = { _ in }
     var becomeKey: () -> Void = {}
+    var openCenter: (String) -> Void = { _ in }
 }
 
 // MARK: - Views
@@ -229,6 +236,7 @@ struct StateGlyph: View {
         case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
         case .failed: Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
         case .stopped: Image(systemName: "stop.circle.fill").foregroundStyle(.secondary)
+        case .interrupted: Image(systemName: "pause.circle.fill").foregroundStyle(.secondary)
         }
     }
 }
@@ -274,7 +282,7 @@ struct CompactPill: View {
     private var line: String {
         switch task.state {
         case .running, .waiting: return task.currentActivity
-        case .done, .failed, .stopped: return task.summary.isEmpty ? "Done." : task.summary
+        case .done, .failed, .stopped, .interrupted: return task.summary.isEmpty ? "Done." : task.summary
         }
     }
 }
@@ -324,6 +332,11 @@ struct TaskDrawer: View {
             if !task.isActive, !task.summary.isEmpty {
                 Text(task.summary).font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
             }
+            HStack {
+                Spacer()
+                Button("Open Task Center ↗") { actions.openCenter(task.id) }
+                    .buttonStyle(.link).font(.system(size: 11.5))
+            }
         }
         .padding(14)
         .frame(width: 420, alignment: .leading)
@@ -336,6 +349,7 @@ struct TaskDrawer: View {
         case .done: return "Done"
         case .failed: return "Failed"
         case .stopped: return "Stopped"
+        case .interrupted: return "Interrupted"
         }
     }
 
@@ -464,7 +478,7 @@ struct ApprovalCard: View {
         }
         .onAppear {
             NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
-                                 userInfo: [.announcement: "InstructFlow agent needs your approval: \(title)",
+                                 userInfo: [.announcement: "Aloud agent needs your approval: \(title)",
                                             .priority: NSAccessibilityPriorityLevel.high.rawValue])
         }
     }

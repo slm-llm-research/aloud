@@ -1,16 +1,16 @@
 # A. Bridging agentd to native macOS ("MacBridge")
 
-*Research date: 2026-10-31. Scope: how InstructFlow's Node/TypeScript agent daemon (`agentd`) can act on the Mac's own apps and data. This section does not repeat what `research/` already covers (hotkeys, insertion, audio, distribution, STT/LLM choice).*
+*Research date: 2026-10-31. Scope: how Aloud's Node/TypeScript agent daemon (`agentd`) can act on the Mac's own apps and data. This section does not repeat what `research/` already covers (hotkeys, insertion, audio, distribution, STT/LLM choice).*
 
 ---
 
 ## A.0 TL;DR
 
-1. **Build a small Swift helper, `macbridge`, of your own.** Ship it inside `InstructFlow.app`, signed with the same Developer ID and Team ID. Expose it to agentd as a **local MCP server over stdio**, with typed tools, each declaring its Effect. Don't mount the third-party Mac MCP servers in production. They're good for borrowing ideas (and MIT code), but each carries its own TCC identity, its own broad tools, and an unaudited permission surface.
-2. **TCC follows the "responsible process".** If InstructFlow.app spawns agentd (a bundled Node binary) and agentd spawns `macbridge`, every Calendar, Reminders, Contacts, Automation and Accessibility prompt is attributed to **InstructFlow**. That only works if InstructFlow's `Info.plist` carries every usage string. If agentd is started from Terminal during development, Terminal gets the blame and the grants instead. Detect that case and warn.
+1. **Build a small Swift helper, `macbridge`, of your own.** Ship it inside `Aloud.app`, signed with the same Developer ID and Team ID. Expose it to agentd as a **local MCP server over stdio**, with typed tools, each declaring its Effect. Don't mount the third-party Mac MCP servers in production. They're good for borrowing ideas (and MIT code), but each carries its own TCC identity, its own broad tools, and an unaudited permission surface.
+2. **TCC follows the "responsible process".** If Aloud.app spawns agentd (a bundled Node binary) and agentd spawns `macbridge`, every Calendar, Reminders, Contacts, Automation and Accessibility prompt is attributed to **Aloud**. That only works if Aloud's `Info.plist` carries every usage string. If agentd is started from Terminal during development, Terminal gets the blame and the grants instead. Detect that case and warn.
 3. **Prefer the most structured route.** Native framework (EventKit, Contacts, Spotlight) beats a scriptable dictionary (AppleScript/JXA), which beats Shortcuts / App Intents, which beats URL schemes, which beat Accessibility, which beats screenshot + OCR, which beats computer use. Each step down is slower, more brittle and harder to verify, so it gets a stricter approval level.
 4. **The Effect model needs three additions.** `read_private` covers mail, messages, screen contents and the clipboard. `ui_input` covers synthetic clicks and keystrokes into other apps. `trash_local` is a reversible move to the Trash, distinct from the blocked `delete_local`. A carve-out from `system_settings` is also needed for *reversible* toggles (Focus, volume, dark mode).
-5. **Shortcuts is the official on-ramp to third-party App Intents.** agentd can't call another app's App Intents directly. It can run any shortcut the user (or InstructFlow) has built around them, via `shortcuts run`. Apple's 26.1 betas contained groundwork for MCP inside App Intents ([9to5Mac](https://9to5mac.com/2025/09/22/macos-tahoe-26-1-beta-1-mcp-integration/)). Watch it. Don't depend on it.
+5. **Shortcuts is the official on-ramp to third-party App Intents.** agentd can't call another app's App Intents directly. It can run any shortcut the user (or Aloud) has built around them, via `shortcuts run`. Apple's 26.1 betas contained groundwork for MCP inside App Intents ([9to5Mac](https://9to5mac.com/2025/09/22/macos-tahoe-26-1-beta-1-mcp-integration/)). Watch it. Don't depend on it.
 
 ---
 
@@ -38,7 +38,7 @@ Each mechanism below is described by what it can do, how agentd calls it, the TC
 - From Swift: `NSAppleScript` (compile once, cache), or `NSUserAppleScriptTask` for sandboxed apps. Typed alternatives are ScriptingBridge or `SBApplication`.
 - Recommendation: ship a **fixed library of parameterized scripts** inside macbridge (`mail.search`, `notes.append`, `safari.front_tab_text`), each exposed as a typed tool. Keep a generic `applescript.run` tool behind `execute_process` with approval and log the full script text.
 
-**TCC.** **Automation (Apple Events)**, granted per target app ("InstructFlow wants to control Mail"). It needs `NSAppleEventsUsageDescription` in the Info.plist and the `com.apple.security.automation.apple-events` entitlement under the hardened runtime. Use `AEDeterminePermissionToAutomateTarget` to check status without triggering a prompt, and pre-flight before planning. A CLI with no bundle identity fails with `-1743`/`-1750` or blames Terminal. Steinberger's fix is to embed an `Info.plist` into the binary's `__TEXT,__info_plist` section and sign it consistently ([steipete.me](https://steipete.me/posts/2025/applescript-cli-macos-complete-guide)). Reset during testing with `tccutil reset AppleEvents <bundle-id>`.
+**TCC.** **Automation (Apple Events)**, granted per target app ("Aloud wants to control Mail"). It needs `NSAppleEventsUsageDescription` in the Info.plist and the `com.apple.security.automation.apple-events` entitlement under the hardened runtime. Use `AEDeterminePermissionToAutomateTarget` to check status without triggering a prompt, and pre-flight before planning. A CLI with no bundle identity fails with `-1743`/`-1750` or blames Terminal. Steinberger's fix is to embed an `Info.plist` into the binary's `__TEXT,__info_plist` section and sign it consistently ([steipete.me](https://steipete.me/posts/2025/applescript-cli-macos-complete-guide)). Reset during testing with `tccutil reset AppleEvents <bundle-id>`.
 
 **Reliability and latency.** Spawning `osascript` cold costs roughly 100–300 ms. A compiled `NSAppleScript` in a long-lived helper costs roughly 10–50 ms plus the target app's own time. Mail search on big mailboxes takes seconds. The target app is launched if it isn't running, so declare `launch_app` as well.
 
@@ -56,16 +56,16 @@ Each mechanism below is described by what it can do, how agentd calls it, the TC
 **Can agentd invoke third-party App Intents?** Not directly. There is no public API for one app to call another app's `AppIntent`. What works:
 1. Any intent an app exposes appears as a **Shortcuts action**. Wrap it in a shortcut, then run it with `shortcuts run`. This is the sanctioned bridge to apps like Things, Fantastical, Bear, Drafts, Ivory and Obsidian (via plugins).
 2. In macOS 26, App Intents also surface as **Spotlight actions** (Cmd-Space, then 3), with parameter summaries. Intents can run from **Mac automations** (folder changes, drives, Bluetooth, time of day). Shortcuts' **Use Model** action receives entity properties as JSON ([WWDC25-260](https://developer.apple.com/videos/play/wwdc2025/260/), [MacRumors](https://www.macrumors.com/how-to/do-more-with-spotlight-in-macos-tahoe/)). None of this is callable from outside, but it means more apps now ship rich intents worth wrapping.
-3. InstructFlow can **ship its own App Intents** ("Ask InstructFlow", "Run voice task"), so Siri, Spotlight and Shortcuts users can trigger agentd. That's a cheap, high-visibility feature.
+3. Aloud can **ship its own App Intents** ("Ask Aloud", "Run voice task"), so Siri, Spotlight and Shortcuts users can trigger agentd. That's a cheap, high-visibility feature.
 4. On the horizon: 26.1 betas contained code for **MCP support inside App Intents** ([9to5Mac](https://9to5mac.com/2025/09/22/macos-tahoe-26-1-beta-1-mcp-integration/), [Computerworld](https://www.computerworld.com/article/4061614/apple-to-deploy-mcp-support-for-powerful-ai-experiences.html)). If Apple ships it, macbridge could enumerate system-exposed intents as MCP tools. Design the tool registry so intents can be mounted dynamically.
 
 **How to call it.** From Node or Swift, run `execFile('shortcuts', ['run', id, '--input-path','-','--output-path','-'])`. The AppleScript alternative is `tell application "Shortcuts Events" to run shortcut "X" with input …`, which runs in the background without opening the Shortcuts UI. Use `--show-identifiers` and refer to shortcuts by UUID so renames don't break tools.
 
-**TCC.** The CLI runs under the user. Each shortcut's actions carry their own privacy prompts, attributed to Shortcuts rather than InstructFlow. That's convenient (fewer prompts to InstructFlow), but it's also an **opaque side-effect surface**.
+**TCC.** The CLI runs under the user. Each shortcut's actions carry their own privacy prompts, attributed to Shortcuts rather than Aloud. That's convenient (fewer prompts to Aloud), but it's also an **opaque side-effect surface**.
 
 **Reliability and latency.** Roughly 0.5–2 s of overhead per run. It sometimes fails silently when a shortcut needs UI (Ask for Input, Show Result), so build shortcuts headless.
 
-**Effect and approval.** An arbitrary shortcut can do anything, so default to `execute_process` with approval. Let the user **tag allowlisted shortcuts with declared effects** in InstructFlow settings (for example "Set Focus: Work" as `system_settings:reversible`). A tagged shortcut is then treated per its tag. Prefix or folder-based allowlisting works well: only shortcuts in a folder named `InstructFlow` are visible to the model.
+**Effect and approval.** An arbitrary shortcut can do anything, so default to `execute_process` with approval. Let the user **tag allowlisted shortcuts with declared effects** in Aloud settings (for example "Set Focus: Work" as `system_settings:reversible`). A tagged shortcut is then treated per its tag. Prefix or folder-based allowlisting works well: only shortcuts in a folder named `Aloud` are visible to the model.
 
 ### A.1.3 EventKit, Contacts and Photos (Swift helper)
 
@@ -81,7 +81,7 @@ Each mechanism below is described by what it can do, how agentd calls it, the TC
 - Keys: `NSCalendarsFullAccessUsageDescription` (or `…WriteOnly…`) and `NSRemindersFullAccessUsageDescription`.
 - APIs: `requestFullAccessToEvents`, `requestWriteOnlyAccessToEvents` and `requestFullAccessToReminders` ([Apple: Accessing the event store](https://developer.apple.com/documentation/eventkit/accessing-the-event-store)).
 - Contacts needs `NSContactsUsageDescription`. Photos needs `NSPhotoLibraryUsageDescription` (`PHAccessLevel.readWrite` or `.addOnly`).
-- Sandboxed apps also need the personal-information entitlements. InstructFlow is likely non-sandboxed (Developer ID), but the entitlements are harmless.
+- Sandboxed apps also need the personal-information entitlements. Aloud is likely non-sandboxed (Developer ID), but the entitlements are harmless.
 
 **Reliability and latency.** Excellent. Roughly 5–50 ms per query on a warm store. Keep one `EKEventStore` alive for the helper's lifetime.
 
@@ -125,7 +125,7 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
 
 **How to call it.** Only from Swift, C or Objective-C, so it lives in macbridge. Return **compact, pruned trees** (role, label, value and an element id, truncated by depth and visibility) rather than raw dumps. Peekaboo's "UI map with element IDs" design is a good template ([Peekaboo](https://github.com/openclaw/Peekaboo)).
 
-**TCC.** **Accessibility** (`AXIsProcessTrustedWithOptions` with the prompt option), granted manually in System Settings > Privacy & Security > Accessibility. There is no per-app scoping: once granted, InstructFlow can drive *everything*. InstructFlow already needs this for insertion and hotkeys, so no new prompt is needed. Posting synthetic events may also need **Input Monitoring / PostEvent** on recent macOS, which is the "additional permission" Peekaboo mentions.
+**TCC.** **Accessibility** (`AXIsProcessTrustedWithOptions` with the prompt option), granted manually in System Settings > Privacy & Security > Accessibility. There is no per-app scoping: once granted, Aloud can drive *everything*. Aloud already needs this for insertion and hotkeys, so no new prompt is needed. Posting synthetic events may also need **Input Monitoring / PostEvent** on recent macOS, which is the "additional permission" Peekaboo mentions.
 
 **Reliability and latency.**
 - Native AppKit apps: good. Tree reads take roughly 20–200 ms.
@@ -138,7 +138,7 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
 ### A.1.6 ScreenCaptureKit and Vision OCR (screen context)
 
 **What it can do.**
-- **ScreenCaptureKit** (`SCShareableContent`, `SCScreenshotManager.captureImage`, macOS 14+) grabs a single window, a display or a region. It can exclude InstructFlow's own HUD.
+- **ScreenCaptureKit** (`SCShareableContent`, `SCScreenshotManager.captureImage`, macOS 14+) grabs a single window, a display or a region. It can exclude Aloud's own HUD.
 - **Vision**: `VNRecognizeTextRequest` (accurate mode, language correction) and, on **macOS 26**, `RecognizeDocumentsRequest`, which returns paragraphs, **tables** and lists rather than flat lines ([Apple](https://developer.apple.com/documentation/vision/recognizedocumentsrequest)).
 - Together they deliver "summarize what's on my screen", "pull the table on screen into a CSV", or "what's the error in this dialog" without sending a screenshot to the cloud. On-device OCR text can go to Claude, and the image only when needed.
 
@@ -176,7 +176,7 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
   - Bear: `bear://x-callback-url/create`.
   - Raycast: `raycast://extensions/<author>/<ext>/<command>?arguments=…` ([MacStories](https://www.macstories.net/stories/raycast-adds-deeplinking-of-commands/), [Raycast changelog](https://www.raycast.com/changelog/1-47-0)).
   - Also Fantastical, Drafts, Craft, Linear, Zoom (`zoommtg://`), Slack (`slack://channel?team=&id=`), and `x-apple.systempreferences:` for opening Settings panes.
-- x-callback replies (`x-success`) need InstructFlow to register its own URL scheme (`instructflow://cb/<taskId>`) to receive results.
+- x-callback replies (`x-success`) need Aloud to register its own URL scheme (`aloud://cb/<taskId>`) to receive results.
 
 **TCC.** None for opening. The target app may prompt on its own side.
 
@@ -186,9 +186,9 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
 
 ### A.1.9 Keychain
 
-**What it can do.** `SecItemAdd` and `SecItemCopyMatching` store InstructFlow's *own* secrets (API keys for ElevenLabs, Groq and Anthropic, plus OAuth tokens for the Gmail MCP or a Robinhood-like API) under its access group. It can **not** silently read other apps' items: every cross-app read triggers a user prompt, and that's by design.
+**What it can do.** `SecItemAdd` and `SecItemCopyMatching` store Aloud's *own* secrets (API keys for ElevenLabs, Groq and Anthropic, plus OAuth tokens for the Gmail MCP or a Robinhood-like API) under its access group. It can **not** silently read other apps' items: every cross-app read triggers a user prompt, and that's by design.
 
-**Recommendation.** agentd should never get a generic "read keychain" tool. macbridge exposes `secrets.get(name)` only for InstructFlow-owned items, used internally to inject credentials into MCP servers. The value never goes to the model context.
+**Recommendation.** agentd should never get a generic "read keychain" tool. macbridge exposes `secrets.get(name)` only for Aloud-owned items, used internally to inject credentials into MCP servers. The value never goes to the model context.
 
 **Effect and approval.** Internal only, not model-visible.
 
@@ -196,7 +196,7 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
 
 **What it can do.** Post local notifications with actions (Approve / Deny / Open). That allows **out-of-band approval** for long-running tasks ("Your Downloads cleanup plan is ready: Review"), timed reminders, and results of background watch rules. It can't read other apps' notifications; there's no public API, and the notification DB requires Full Disk Access and is an unsupported route.
 
-**TCC.** The Notifications authorization (`requestAuthorization`), attributed to InstructFlow.app. That's another reason for the helper to live in the app bundle.
+**TCC.** The Notifications authorization (`requestAuthorization`), attributed to Aloud.app. That's another reason for the helper to live in the app bundle.
 
 **Effect and approval.** Posting to yourself is `notify`, auto (a no-risk effect). Approval actions in a notification count as **click approval** but must show the full step text.
 
@@ -205,7 +205,7 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
 **What it can do.**
 - **Setting** a Focus has no public API. The supported path is the Shortcuts **Set Focus** action wrapped in user shortcuts ("IF Focus Work", "IF Focus Off"), invoked via `shortcuts run`.
 - **Reading**: `INFocusStatusCenter` only says whether the user is focused, and only for apps with the Communication Notifications capability. Hacks that read `~/Library/DoNotDisturb/DB/*.json` need Full Disk Access, so don't use them.
-- Focus Filters (App Intents `SetFocusFilterIntent`) let InstructFlow itself *change behaviour* per Focus. For example, in "Work" Focus the default mail tool is work Outlook; in Personal it's Gmail.
+- Focus Filters (App Intents `SetFocusFilterIntent`) let Aloud itself *change behaviour* per Focus. For example, in "Work" Focus the default mail tool is work Outlook; in Personal it's Gmail.
 
 **Effect and approval.** Set Focus is `system_settings:reversible`, auto or by voice. It's an explicit carve-out from the blocked `system_settings`, because it's trivially undoable.
 
@@ -235,13 +235,13 @@ Fall back to Mail.app attachment search, or to the Gmail MCP, when Spotlight mis
 
 ### A.1.14 Clipboard and clipboard history
 
-**What it can do.** `NSPasteboard.general` read and write. Write-then-paste is already how InsertKit works. **Clipboard history** must be built by InstructFlow itself by polling `changeCount`. macOS 26's Spotlight clipboard history has no API ([MacRumors](https://www.macrumors.com/how-to/do-more-with-spotlight-in-macos-tahoe/)).
+**What it can do.** `NSPasteboard.general` read and write. Write-then-paste is already how InsertKit works. **Clipboard history** must be built by Aloud itself by polling `changeCount`. macOS 26's Spotlight clipboard history has no API ([MacRumors](https://www.macrumors.com/how-to/do-more-with-spotlight-in-macos-tahoe/)).
 
 **Privacy change.** Apple is adding iOS-style pasteboard privacy to the Mac. Programmatic reads without user interaction raise an alert. New `detect` methods let an app inspect types without reading, and `accessBehavior` controls the policy ([MacRumors](https://www.macrumors.com/2025/05/12/apple-mac-apps-clipboard-change/), [Michael Tsai](https://mjtsai.com/blog/2025/05/12/)).
 
 **Recommendations.**
 - Use `detect*` first, and read only during a user-initiated task.
-- If InstructFlow offers clipboard history, make it opt-in, honour `org.nspasteboard.ConcealedType` / `TransientType` (which password managers set), and store it encrypted locally.
+- If Aloud offers clipboard history, make it opt-in, honour `org.nspasteboard.ConcealedType` / `TransientType` (which password managers set), and store it encrypted locally.
 
 **Effect and approval.** Clipboard read is `read_private`, auto within a voice task that references "what I copied". Clipboard write is `write_local`, auto because it's reversible and InsertKit already restores the clipboard.
 
@@ -273,9 +273,9 @@ Figures are from the repository pages as fetched on 2026-10-31.
 
 **Recommendation: build MacBridge and don't mount these servers.** The reasons:
 
-1. **TCC identity.** Each third-party server either runs as its own app (iMCP, Peekaboo.app), which means a second set of permission prompts and a second trust decision for the user, or inherits InstructFlow's grants with code you didn't write. Either is bad for a product whose pitch is policy-governed agency.
+1. **TCC identity.** Each third-party server either runs as its own app (iMCP, Peekaboo.app), which means a second set of permission prompts and a second trust decision for the user, or inherits Aloud's grants with code you didn't write. Either is bad for a product whose pitch is policy-governed agency.
 2. **Effects granularity.** agentd's model needs each tool to declare *one* Effect. `execute_script` or an "apple-mcp mail" tool that both reads and sends can't be classified safely.
-3. **Licensing.** The top projects are MIT, so InstructFlow (Apache-2.0) can vendor or port code with attribution. Port iMCP's EventKit and Contacts patterns, Peekaboo's AX snapshot and element-id approach, and macos-automator-mcp's script knowledge base.
+3. **Licensing.** The top projects are MIT, so Aloud (Apache-2.0) can vendor or port code with attribution. Port iMCP's EventKit and Contacts patterns, Peekaboo's AX snapshot and element-id approach, and macos-automator-mcp's script knowledge base.
 4. **Portfolio value.** "A typed, effect-declared, TCC-correct Mac bridge with evals" is a distinctive artifact. "I mounted apple-mcp" is not.
 
 **Keep MCP mounting for remote services** (Gmail, Google Calendar, GitHub, brokerage read-only APIs), where agentd's generic MCP client plus per-tool Effect annotations in a config file is the right abstraction. For dev experimentation, allow mounting Peekaboo or iMCP behind a `dev.unsafeMcp` flag, with all their tools classified as `execute_process` + approval.
@@ -285,13 +285,13 @@ Figures are from the repository pages as fetched on 2026-10-31.
 ## A.3 MacBridge architecture
 
 ```
-InstructFlow.app  (Developer ID, hardened runtime, Team T)
-├── Contents/MacOS/InstructFlow          Swift UI, HUD, AgentPanel, HotkeyKit…
+Aloud.app  (Developer ID, hardened runtime, Team T)
+├── Contents/MacOS/Aloud          Swift UI, HUD, AgentPanel, HotkeyKit…
 ├── Contents/MacOS/macbridge             Swift CLI: MCP server (stdio)  ← same Team ID, embedded Info.plist
 ├── Contents/Resources/agentd/node       bundled Node 22 + agentd JS
 └── Contents/Info.plist                  ALL usage strings (responsible process = this app)
 
-InstructFlow ──spawn──▶ agentd (Node) ──spawn stdio──▶ macbridge
+Aloud ──spawn──▶ agentd (Node) ──spawn stdio──▶ macbridge
      ▲  JSON-RPC unix socket   │  MCP client                │ EventKit / CNContactStore / PhotoKit
      │  approvals, HUD         │  policy engine (Effects)    │ NSMetadataQuery / FSEvents
      └──── approval cards ◀────┘  audit JSONL                │ AXUIElement / CGEvent
@@ -302,10 +302,10 @@ InstructFlow ──spawn──▶ agentd (Node) ──spawn stdio──▶ macbr
 
 ### A.3.1 Identity and TCC
 
-- **Responsible process.** TCC attributes a child's access to its responsible ancestor ([Michael Tsai summary](https://mjtsai.com/blog/2025/07/07/the-curious-case-of-the-responsible-process/)). With the app → agentd → macbridge chain, every prompt says "InstructFlow". Put `NSAppleEventsUsageDescription`, `NSCalendarsFullAccessUsageDescription`, `NSRemindersFullAccessUsageDescription`, `NSContactsUsageDescription`, `NSPhotoLibraryUsageDescription` and the Screen Recording / Accessibility onboarding copy in the **app's** Info.plist. Give macbridge its own embedded Info.plist too (bundle id `ai.instructflow.macbridge`) for standalone dev runs.
+- **Responsible process.** TCC attributes a child's access to its responsible ancestor ([Michael Tsai summary](https://mjtsai.com/blog/2025/07/07/the-curious-case-of-the-responsible-process/)). With the app → agentd → macbridge chain, every prompt says "Aloud". Put `NSAppleEventsUsageDescription`, `NSCalendarsFullAccessUsageDescription`, `NSRemindersFullAccessUsageDescription`, `NSContactsUsageDescription`, `NSPhotoLibraryUsageDescription` and the Screen Recording / Accessibility onboarding copy in the **app's** Info.plist. Give macbridge its own embedded Info.plist too (bundle id `ai.aloud.macbridge`) for standalone dev runs.
 - **Entitlements** (hardened runtime): `com.apple.security.automation.apple-events`. Node needs `com.apple.security.cs.allow-jit` and possibly `allow-unsigned-executable-memory`, but **don't** give those to macbridge. Keeping the two binaries separate keeps the JIT entitlement off the binary that holds the personal-data access.
 - **Pre-flight tool.** `permissions.status` returns `{automation:{Mail:granted,Notes:notDetermined}, accessibility:true, screen:false, calendars:"fullAccess", …}` using `AEDeterminePermissionToAutomateTarget`, `AXIsProcessTrusted`, `CGPreflightScreenCaptureAccess` and `EKEventStore.authorizationStatus`. The planner reads this before picking a route, so it never plans a step that will hit a prompt mid-task. A `permissions.request(kind)` tool is approval-gated and pops the prompt or deep-links to Settings.
-- **Dev guard.** If `getppid()`'s responsible process isn't InstructFlow (for example agentd launched from Terminal), macbridge logs a loud warning, because grants would attach to Terminal.
+- **Dev guard.** If `getppid()`'s responsible process isn't Aloud (for example agentd launched from Terminal), macbridge logs a loud warning, because grants would attach to Terminal.
 
 ### A.3.2 Tool contract
 
@@ -317,11 +317,11 @@ macbridge is written in Swift 6 with the official MCP Swift SDK or a minimal JSO
   "description": "List events in a time range",
   "inputSchema": { "type":"object", "properties": { "start":{"type":"string","format":"date-time"}, "end":{"type":"string","format":"date-time"}, "calendars":{"type":"array","items":{"type":"string"}} }, "required":["start","end"] },
   "annotations": { "readOnlyHint": true },
-  "_meta": { "instructflow/effect": "read_private", "instructflow/tcc": ["calendars"], "instructflow/reversible": true, "instructflow/launches": [] }
+  "_meta": { "aloud/effect": "read_private", "aloud/tcc": ["calendars"], "aloud/reversible": true, "aloud/launches": [] }
 }
 ```
 
-agentd validates `_meta.instructflow/effect` against an allowlist **compiled into agentd**, not trusted from the server. Unknown or missing values default to `execute_process`. That keeps the policy authoritative even if macbridge is swapped.
+agentd validates `_meta.aloud/effect` against an allowlist **compiled into agentd**, not trusted from the server. Unknown or missing values default to `execute_process`. That keeps the policy authoritative even if macbridge is swapped.
 
 ### A.3.3 Proposed tool catalogue (v1)
 
@@ -338,7 +338,7 @@ agentd validates `_meta.instructflow/effect` against an allowlist **compiled int
 | mail (Mail.app) | `mail.search`, `mail.read`, `mail.save_attachments`, `mail.draft` (open compose window, not send), `mail.send` | read_private / write_local / send_message |
 | messages | `messages.send` | send_message (never voice-approved) |
 | notes | `notes.search`, `notes.read`, `notes.create`, `notes.append` | read_private / write_local |
-| shortcuts | `shortcuts.list` (InstructFlow folder only), `shortcuts.run` | read_local / per-tag or execute_process |
+| shortcuts | `shortcuts.list` (Aloud folder only), `shortcuts.run` | read_local / per-tag or execute_process |
 | apps and urls | `apps.open`, `apps.quit` (approval: unsaved work), `url.open` (scheme registry) | launch_app / open_url / write_local |
 | windows | `windows.list`, `windows.arrange` (preset layouts), `windows.move_to_display`, `windows.undo_layout` | read_local / ui_input:window |
 | screen | `screen.capture` (window, display, region; excludes HUD), `screen.ocr` (Vision; `RecognizeDocumentsRequest` on 26) | read_private |
@@ -353,14 +353,14 @@ agentd validates `_meta.instructflow/effect` against an allowlist **compiled int
 
 | New or changed effect | Meaning | Default approval |
 |---|---|---|
-| `read_private` | personal data or screen contents (mail, messages, calendar, contacts, photos, screen, selection, clipboard) | Auto after a **per-session category grant** ("Allow InstructFlow to read your calendar for this session?"). Results are tagged **tainted** (prompt-injection source). |
+| `read_private` | personal data or screen contents (mail, messages, calendar, contacts, photos, screen, selection, clipboard) | Auto after a **per-session category grant** ("Allow Aloud to read your calendar for this session?"). Results are tagged **tainted** (prompt-injection source). |
 | `ui_input` | synthetic input or AX actions into other apps | Click approval per step, showing target app and element. `ui_input:window` and `ui_input:media` are auto. |
 | `trash_local` | NSWorkspace.recycle into the Trash (reversible) | Click approval with a file list. Bulk (more than 20 files) requires typing or saying a confirmation count. |
 | `system_settings:reversible` | allowlisted toggles with stored undo | Auto (voice OK). Everything else stays blocked. |
 | `notify` | post a notification to the user | Auto |
 | Taint rule | After any tainted read in a task, `send_message` / `network_write` steps must show the **exact payload** and the source of any included private data. Instructions found inside tainted content are never executed as plan steps. | Enforced |
 
-Also add **dry-run plans** (from the plan backlog) for bulk file ops. macbridge returns a `plan` (list of moves) from `files.organize_plan`. The AgentPanel renders it as a diff, and one approval executes the whole batch atomically, with an undo log (`~/Library/Application Support/InstructFlow/undo/<task>.json`).
+Also add **dry-run plans** (from the plan backlog) for bulk file ops. macbridge returns a `plan` (list of moves) from `files.organize_plan`. The AgentPanel renders it as a diff, and one approval executes the whole batch atomically, with an undo log (`~/Library/Application Support/Aloud/undo/<task>.json`).
 
 ### A.3.5 Lifecycle and performance
 
@@ -414,7 +414,7 @@ Difficulty: **S** means a single tool call; **M** means multi-step or entity res
 | 35 | "Click 'Approve' on this pull request" (web) | Chrome/AX `ui.press` by element id; fallback computer use | ui_input (+ semantic: approve = network_write) | click + preview | L |
 | 36 | "Export my Robinhood positions page to a CSV" | Computer use / AX over browser (no official API) → OCR or DOM → CSV | read_private, write_local | takeover approval; read-only, never trade (spend_money blocked) | L |
 | 37 | "Join my next meeting" | EventKit next event → extract Zoom/Meet URL → `open` | read_private, open_url | auto | S |
-| 38 | "Notify me when the Claude Code task in instructflow finishes" | agentd task + `notify.post` | notify | auto | S |
+| 38 | "Notify me when the Claude Code task in aloud finishes" | agentd task + `notify.post` | notify | auto | S |
 | 39 | "Who's Priya's phone number?" | Contacts resolve | read_private | auto | S |
 | 40 | "Make a reminder for every unanswered email from my manager this week" | Mail AS/Gmail MCP search + EventKit batch create | read_private, write_local | one approval on plan | M |
 
@@ -425,7 +425,7 @@ Difficulty: **S** means a single tool call; **M** means multi-step or entity res
 1. **macbridge skeleton.** Stdio MCP, the `permissions.*` tools, embedded plist, signing inside the app bundle, the responsible-process check, and the Effect metadata plus agentd allowlist.
 2. **High-value structured reads.** EventKit, Contacts, Spotlight, `context.frontmost`/selection, and browser tab text. These cover tasks 1, 2, 5, 6, 11, 17, 18, 37 and 39.
 3. **Writes with approval.** Calendar and reminders create, file move/tag/trash with dry-run plans plus undo, Notes append, and URL-scheme registry (Things, Obsidian, Raycast).
-4. **Shortcuts bridge.** The InstructFlow folder, effect tags, and Focus via shortcuts.
+4. **Shortcuts bridge.** The Aloud folder, effect tags, and Focus via shortcuts.
 5. **Screen context and AX.** ScreenCaptureKit + Vision, pruned AX snapshot, window arrange, and Command mode.
 6. **FSEvents rules.** This is the standout "agentic OS" feature.
 7. **Computer use** last, behind takeover approval, with AX-grounding.

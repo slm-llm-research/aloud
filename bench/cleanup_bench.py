@@ -164,7 +164,7 @@ def main():
     for name in args.engines.split(","):
         key_env, factory = ENGINES[name]
         if key_env and not os.environ.get(key_env):
-            print(f"skip {name}: {key_env} not set in voice-flow/.env")
+            print(f"skip {name}: {key_env} not set in aloud/.env")
             continue
         try:
             eng = factory()

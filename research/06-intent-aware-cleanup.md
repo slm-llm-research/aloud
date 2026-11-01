@@ -308,13 +308,13 @@ Everything stays inside the 0.25–0.9 s budget. Option B (two calls) would not.
 
 ### 6.7 Field report (2026-10-30): "sub‑sub-agent" and other output-hygiene bugs
 
-Seen in the user's own dictation (`~/Library/Logs/InstructFlow/instructflow.log`):
+Seen in the user's own dictation (`~/Library/Logs/Aloud/aloud.log`):
 
 | | Text |
 |---|---|
 | heard (Scribe) | `…the research done for, by the sub- sub-agent?` |
 | typed | `…the research done by the sub‑sub-agent?` |
-| heard | `Also, this very text is being typed using, um, InstructFlow… So please add that to the design doc… and, uh, we will do, like, research` |
+| heard | `Also, this very text is being typed using, um, Aloud… So please add that to the design doc… and, uh, we will do, like, research` |
 | typed | `Goal: Add backend post‑processing… Requirements: - Ensure sub‑sub‑agent does not type the word “sub” twice. …` |
 
 Root causes:

@@ -1,4 +1,4 @@
-# Secrets: API keys live in .env (bench) or ~/Library/Application Support/InstructFlow/keys.env (app). Never commit them.
+# Secrets: API keys live in .env (bench) or ~/Library/Application Support/Aloud/keys.env (app). Never commit them.
 .env
 .env.*
 !.env.example

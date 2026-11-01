@@ -1,6 +1,6 @@
 # D. Developer and ML-Engineer Voice Workflows for agentd
 
-*Research date: 2026-10-31. Scope: extending InstructFlow's `agentd` (Node 22 / TypeScript, typed `ToolContract`s with declared Effects, click-approval cards in the HUD/AgentPanel) into a voice control surface for coding agents, dev tooling, and ML infrastructure. Dictation, STT, cleanup, and macOS integration are covered elsewhere in `research/` and are not repeated here.*
+*Research date: 2026-10-31. Scope: extending Aloud's `agentd` (Node 22 / TypeScript, typed `ToolContract`s with declared Effects, click-approval cards in the HUD/AgentPanel) into a voice control surface for coding agents, dev tooling, and ML infrastructure. Dictation, STT, cleanup, and macOS integration are covered elsewhere in `research/` and are not repeated here.*
 
 ---
 

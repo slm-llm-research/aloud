@@ -46,9 +46,9 @@ struct AgentProtocolTests {
 }
 
 /// Starts the real agentd on a temporary socket and pings it (no LLM call).
-/// INSTRUCTFLOW_INTEGRATION=1 swift test --filter AgentLive   (needs `npm run build` in agentd/)
+/// ALOUD_INTEGRATION=1 swift test --filter AgentLive   (needs `npm run build` in agentd/)
 @MainActor
-@Suite("AgentLive", .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_INTEGRATION"] == "1"))
+@Suite("AgentLive", .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
 struct AgentLiveTests {
     @Test func startsConnectsAndPings() async throws {
         let script = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
@@ -65,7 +65,7 @@ struct AgentLiveTests {
         p.executableURL = URL(fileURLWithPath: node)
         p.arguments = [script]
         var env = ProcessInfo.processInfo.environment
-        env["INSTRUCTFLOW_AGENT_CONFIG"] = config.path
+        env["ALOUD_AGENT_CONFIG"] = config.path
         env["ANTHROPIC_API_KEY"] = env["ANTHROPIC_API_KEY"] ?? "test-key-not-used-for-ping"
         p.environment = env
         p.standardInput = Pipe()

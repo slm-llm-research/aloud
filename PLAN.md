@@ -2,7 +2,7 @@
 
 *Status: **draft for approval**. Nothing gets built until you approve. The basis for this plan is [research/00-research-report.md](research/00-research-report.md).*
 
-Working name: **InstructFlow** (placeholder; easy to rename).
+Working name: **Aloud** (placeholder; easy to rename).
 
 ---
 
@@ -116,7 +116,7 @@ gpt-oss-20b returned **empty output 3/3 times** on the dictated "ignore all prev
 ## 1. Architecture
 
 ```
-┌──────────────────────────── InstructFlow.app (Swift, menubar, LSUIElement) ───────────────────────────┐
+┌──────────────────────────── Aloud.app (Swift, menubar, LSUIElement) ───────────────────────────┐
 │                                                                                                  │
 │  HotkeyKit ──events──► SessionController (state machine) ──► HUD (floating pill, waveform)      │
 │  (CGEventTap thread)        │        ▲                                                          │
@@ -150,7 +150,7 @@ gpt-oss-20b returned **empty output 3/3 times** on the dictated "ignore all prev
 │  Telemetry: os_signpost spans + local metrics table (never leaves the machine)                  │
 └──────────────────────────────────────────────────────────────────────────────────────────┼──────┘
                                                                                             ▼
-┌──────────────────────── instructflow-agentd (TypeScript, launchd user agent) ──────────────────────────┐
+┌──────────────────────── aloud-agentd (TypeScript, launchd user agent) ──────────────────────────┐
 │  Task intake → Planner (Claude) → Tool calls ─► Effects gate ─► Approval (sent back to HUD)      │
 │  Tool registry: contracts + declared effects (rea pattern) │ executors: shell (allowlisted),     │
 │  Claude Code headless (`claude -p`, scoped permission mode), AppleScript/Shortcuts, files, MCP   │
@@ -367,7 +367,7 @@ The onboarding window checks each permission live and deep-links to the right Sy
 
 **How it's tested:**
 - **Automated (CI-able on a Mac):** a harness app with NSTextField, NSTextView, WKWebView contenteditable, and a terminal emulator view runs scripted sessions. It inserts fixed strings through each strategy and reads them back via AX.
-- **Semi-automated:** a `instructflow-compat` CLI targets a real app by bundle ID, focuses a field via AX, runs each strategy, verifies by read-back, and writes a results table. It is re-run before each release.
+- **Semi-automated:** an `aloud-compat` CLI targets a real app by bundle ID, focuses a field via AX, runs each strategy, verifies by read-back, and writes a results table. It is re-run before each release.
 - **Manual:** a checklist for apps without AX read-back (Google Docs, Warp, games), run once per milestone. Results are recorded in `docs/compat.md`.
 
 ## 8. Backend agent execution
@@ -380,13 +380,13 @@ Routing is **explicit by default**. Every dictation is not classified, because t
 |---|---|
 | Plain trigger | Dictation, always. Never executes anything. |
 | Left Shift + Right Option | Command mode: edit the selection, or ask the LLM. The result is inserted or shown. No side effects outside the text field. |
-| **Left Shift + Tab** (or a "Hey InstructFlow, …" prefix, optional and off by default) | **Task mode** → agentd |
+| **Left Shift + Tab** (or a "Hey Aloud, …" prefix, optional and off by default) | **Task mode** → agentd |
 
 An optional "smart routing" setting can be added later. A small classifier would then flag dictations that look like tasks and *offer* to route them; it would never auto-route.
 
 ### 8.2 Agent interface
 
-The app ↔ agentd protocol is JSON-RPC 2.0 over a Unix domain socket at `~/Library/Application Support/InstructFlow/agentd.sock`, with permissions 0600.
+The app ↔ agentd protocol is JSON-RPC 2.0 over a Unix domain socket at `~/Library/Application Support/Aloud/agentd.sock`, with permissions 0600.
 
 ```ts
 // app → agentd
@@ -459,12 +459,12 @@ interface ToolContract<I, O> { name; description; input: ZodSchema<I>; output: Z
 | Bench | Python 3.12 (uv), jiwer + whisper-normalizer, pandas; a Swift CLI for in-process latency |
 
 ```
-voice-flow/
+aloud/
 ├── PLAN.md
 ├── research/                      # Phase 1 reports (exists)
 ├── app/
-│   ├── InstructFlow.xcodeproj
-│   ├── InstructFlow/                    # app target: AppDelegate, menubar, onboarding, settings UI
+│   ├── Aloud.xcodeproj
+│   ├── Aloud/                    # app target: AppDelegate, menubar, onboarding, settings UI
 │   └── Packages/
 │       ├── HotkeyKit/             # event tap, Left Shift / Tab chord, state machine (+ tests)
 │       ├── AudioKit/              # engine, ring buffer, pre-roll, VAD, device selection
@@ -483,7 +483,7 @@ voice-flow/
 │   ├── data/                      # your recordings + references (gitignored audio)
 │   ├── wer.py  latency.py  cleanup_eval.py
 │   └── replay/                    # WAV → virtual input device + scripted key events
-├── tools/instructflow-compat/           # app compatibility CLI
+├── tools/aloud-compat/           # app compatibility CLI
 └── docs/{compat.md, prompts.md, architecture.md}
 ```
 
@@ -506,7 +506,7 @@ voice-flow/
 | Coding-mode completeness | Every requirement in the reference appears in the output (judge + checklist) | ≥ 97% requirement recall, 0 invented requirements |
 | Latency, key-up → inserted | os_signpost spans: `keyUp`, `sttCommitSent`, `sttFinal(source)`, `llmFirstToken`, `llmDone`, `insertPosted`, `insertVerified` | p50/p95 as in §3.3 |
 | Key-down → recording live | Signpost | ≤ 50 ms; no clipped first word in 100 trials |
-| Insert success rate | instructflow-compat across the matrix | ≥ 99% on tier-1 apps |
+| Insert success rate | aloud-compat across the matrix | ≥ 99% on tier-1 apps |
 | Resource use | Idle RSS / CPU | ≤ 120 MB idle (excluding loaded models), ~0% CPU idle |
 
 **Replay harness:** BlackHole or a virtual audio device plays the WAVs, and scripted CGEvents press and release the trigger. Results go to `bench/results/<date>.csv` so runs can be compared across providers and builds. Regressions over 10% in p95 fail a local `make bench-check`.
@@ -527,7 +527,7 @@ Durations assume focused part-time work with Claude Code doing most of the imple
 | M | Scope | Exit criteria |
 |---|---|---|
 | **M0: Foundations and benchmark** (≈3–4 days) — *mostly done* | ✅ bench harness + public/synthetic dataset; ✅ local STT; ✅ cloud STT; ✅ local + cloud cleanup LLMs; ✅ D2/D3 decided; ✅ app package skeleton + HotkeyKit with tests (written, **not yet compiled**: the toolchain needs the CLT 16.4 update). ⏳ your recordings; ⏳ signing identity | Results table; D2/D3 confirmed |
-| **M1: Core dictation loop** (≈1 week) — *first working build*. ✅ HotkeyKit, AudioKit, STTKit (Parakeet via FluidAudio: **82–87 ms for a 4 s clip on the ANE**), InsertKit (Cmd-V + clipboard restore, Unicode typing for remote desktops, secure-input guard, terminal sanitizing), InstructFlowCore session, HUD, permissions prompts, `.app` bundling; 60 tests. ⏳ your hands-on test; ⏳ AX Edit›Paste for Chromium; ⏳ promised-pasteboard restore (uses a fixed 450 ms delay for now); ⏳ VAD trim; ⏳ onboarding window; ⏳ stable signing identity | HotkeyKit (Left Shift hold + double-tap latch + Esc + Left Shift+Tab), AudioKit with pre-roll, Parakeet local STT, InsertKit (promised paste + restore + AX paste for Chromium), HUD, onboarding/permissions | Daily-drivable offline dictation in 10 tier-1 apps; p95 raw ≤ 500 ms |
+| **M1: Core dictation loop** (≈1 week) — *first working build*. ✅ HotkeyKit, AudioKit, STTKit (Parakeet via FluidAudio: **82–87 ms for a 4 s clip on the ANE**), InsertKit (Cmd-V + clipboard restore, Unicode typing for remote desktops, secure-input guard, terminal sanitizing), AloudCore session, HUD, permissions prompts, `.app` bundling; 60 tests. ⏳ your hands-on test; ⏳ AX Edit›Paste for Chromium; ⏳ promised-pasteboard restore (uses a fixed 450 ms delay for now); ⏳ VAD trim; ⏳ onboarding window; ⏳ stable signing identity | HotkeyKit (Left Shift hold + double-tap latch + Esc + Left Shift+Tab), AudioKit with pre-roll, Parakeet local STT, InsertKit (promised paste + restore + AX paste for Chromium), HUD, onboarding/permissions | Daily-drivable offline dictation in 10 tier-1 apps; p95 raw ≤ 500 ms |
 | **M2: Streaming cloud + race** (≈3–4 days) — *built, in your hands*. ✅ Scribe v2 Realtime client (commit→final **109 ms** live from Swift), speculative socket on key-down, 250 ms race with Parakeet (both directions fall back), keyterms from dictionary, offline toggle; unit + live tests. ⏳ per-app local-only rules | Scribe Realtime with keyterms, speculative socket, race policy, offline auto-switch, per-app local-only rules | Measured p95 improvement; WER targets met |
 | **M3: Cleanup and personalization** (≈1 week) — *core built*. ✅ prepass (hesitations, skip heuristic), Groq gpt-oss-120b → Haiku 5.5 → deterministic fallback, guardrail, personal dictionary (terms + fixes), Keychain keys, background clipboard restore with back-to-back protection; live tests pass. ⏳ cleanup levels, snippets, auto-learn, history UI, paste-last/undo-last | Skip heuristic, cleanup prompt + levels, guardrails, snippets, dictionary + auto-learn, history (audio retained), paste-last, undo-last | Cleanup eval ≥ 95%; latency within budget |
 | **M4: App-aware context and coding-agent mode** (≈1 week) — *built*. ✅ app profiles (editors incl. Cursor/VS Code/JetBrains, terminals, Claude/ChatGPT/Gemini apps + browser tabs), focused-window title via AX → spelling hints only when spoken, ≥40-word requests restructured (Goal/Context/Requirements/Steps/Done when), restructure guardrail (no code, no context leak, bounded growth); live: 3/3 runs × 4 requests restructured, Groq 0.35–0.9 s, Haiku fallback ~1.5 s. ⏳ editor-vs-agent-panel detection, streaming preview, @file mentions | ContextKit, ProfileKit, IDE/terminal agent detection, identifier keyterms, restructure template, streaming preview | Coding eval targets; works in Claude Code, Cursor, Claude desktop |

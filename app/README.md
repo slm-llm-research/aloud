@@ -1,16 +1,16 @@
-# InstructFlow (macOS app)
+# Aloud (macOS app)
 
 ## Build, test, run
 
 ```bash
-cd voice-flow/app
+cd aloud/app
 swift test                                            # unit tests (fast, no permissions needed)
-INSTRUCTFLOW_INTEGRATION=1 swift test --filter STTKitTests  # real Parakeet model (first run downloads ~600 MB)
-scripts/bundle.sh                                     # -> build/InstructFlow.app (release, signed)
-open build/InstructFlow.app
+ALOUD_INTEGRATION=1 swift test --filter STTKitTests  # real Parakeet model (first run downloads ~600 MB)
+scripts/bundle.sh                                     # -> build/Aloud.app (release, signed)
+open build/Aloud.app
 ```
 
-On first launch, macOS asks for the **Microphone**, **Input Monitoring** and **Accessibility** permissions. Grant all three in System Settings → Privacy & Security. InstructFlow picks the permissions up within a few seconds; the menu-bar ⏦ icon's menu shows "Ready".
+On first launch, macOS asks for the **Microphone**, **Input Monitoring** and **Accessibility** permissions. Grant all three in System Settings → Privacy & Security. Aloud picks the permissions up within a few seconds; the menu-bar ⏦ icon's menu shows "Ready".
 
 Ad-hoc signing (the default) changes the app's identity on every rebuild, so macOS asks again after each `bundle.sh`. To avoid that, use `SIGN_ID="<your identity>" scripts/bundle.sh`.
 
@@ -33,5 +33,5 @@ Tab is never intercepted, so Shift + Tab (either Shift) always reaches the app, 
 | `AudioKit` | Mic capture, 16 kHz mono resampling, sample buffer | 5 |
 | `STTKit` | Parakeet TDT 0.6B v2 on the Neural Engine (FluidAudio 0.18.0) | 2 integration |
 | `InsertKit` | Clipboard snapshot/restore, transient pasteboard, Cmd-V / Unicode typing, terminal sanitizing | 12 |
-| `InstructFlowCore` | Session: record → transcribe → insert; task-mode routing | 11 |
-| `InstructFlow` | Menu-bar app, HUD, permissions, wiring | manual |
+| `AloudCore` | Session: record → transcribe → insert; task-mode routing | 11 |
+| `Aloud` | Menu-bar app, HUD, permissions, wiring | manual |

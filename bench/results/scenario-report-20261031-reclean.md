@@ -1,4 +1,4 @@
-# InstructFlow scenario eval: 20261031-reclean
+# Aloud scenario eval: 20261031-reclean
 
 27 of 37 scenarios. Source: reclean of 20261031 (same heard text, current code). Lower is better for error rates; higher for the rest.
 

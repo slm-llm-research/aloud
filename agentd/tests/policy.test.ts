@@ -81,8 +81,8 @@ describe("shell policy", () => {
 });
 
 describe("path confinement", () => {
-  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "instructflow-root-")));
-  const outside = realpathSync(mkdtempSync(path.join(tmpdir(), "instructflow-outside-")));
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "aloud-root-")));
+  const outside = realpathSync(mkdtempSync(path.join(tmpdir(), "aloud-outside-")));
   mkdirSync(path.join(root, "proj"));
 
   it("accepts paths inside a root, relative or absolute", () => {

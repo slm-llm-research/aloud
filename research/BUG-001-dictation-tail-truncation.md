@@ -5,13 +5,13 @@
 | Status | Fixed 2026-10-31 (root cause H1 confirmed from the dictation log); see section 0 |
 | Reported by | Shekhar (own observation while dictating) |
 | Reported | 2026-10-31 |
-| Component | Dictation path: AudioKit -> STTKit -> InstructFlowCore (STTRace) -> CleanupKit -> InsertKit |
+| Component | Dictation path: AudioKit -> STTKit -> AloudCore (STTRace) -> CleanupKit -> InsertKit |
 | Severity | High. Silent data loss: the text looks complete, so the loss goes unnoticed. |
 | Affects | Dictation mode (Right Shift). Task mode (Right Shift + Right Cmd) shares the same STT path, so check it too. |
 
 ## 0. Resolution (2026-10-31)
 
-**Root cause: H1.** `~/Library/Logs/InstructFlow/dictations.jsonl` already had the evidence. The four
+**Root cause: H1.** `~/Library/Logs/Aloud/dictations.jsonl` already had the evidence. The four
 longest dictations (30 to 62 s) all used cloud STT and reported key-up to transcript times of
 **12, 26, 38 and 143 ms**. A real final segment can't arrive that fast. `finish()` had returned the
 segments Scribe had committed on its own during the recording, without waiting for the final one.
@@ -28,13 +28,13 @@ audio into its own commits even with `commit_strategy=manual`.
 | H5 insertion | Not seen | No change. |
 
 **Instrumentation:** every dictation now logs `scribe: segments=N early=M final=yes|timeout|no`. It
-appears in `instructflow.log` and as `stt_notes` in `dictations.jsonl`. `early>0` with `final=yes`
+appears in `aloud.log` and as `stt_notes` in `dictations.jsonl`. `early>0` with `final=yes`
 means the old code would have dropped words.
 
 **Tests:**
 - `STTKitTests/TailTruncationTests`: an early segment followed by the final one; the final segment arriving before the wait; timeout; an empty final segment.
 - `CleanupKitTests/TailTruncationTests`: truncated Groq and Claude responses; the token cap; the guardrail's ending check.
-- `InstructFlowCoreTests` (race window).
+- `AloudCoreTests` (race window).
 - `bench/scenarios.jsonl`: two long dictations with end markers (`long-notes-tail-marker`, `long-agent-tail-marker`, tag `tail`).
 
 **To confirm with real speech:**
@@ -107,7 +107,7 @@ Then diff the last five words at each stage. The first stage where the marker is
 
 ## 4b. Logging to add (concrete)
 
-Add one structured line per dictation to `DiagLog` (`~/Library/Logs/InstructFlow/instructflow.log`), keyed by a short `dictationId`, so a single `grep` reconstructs the whole path. Log word counts and the last 5 words only, not full text, to keep the log small and less sensitive; add full text behind a debug flag when needed.
+Add one structured line per dictation to `DiagLog` (`~/Library/Logs/Aloud/aloud.log`), keyed by a short `dictationId`, so a single `grep` reconstructs the whole path. Log word counts and the last 5 words only, not full text, to keep the log small and less sensitive; add full text behind a debug flag when needed.
 
 ```
 [dictation <id>] audio   secs=62.4 samples=998400 keyUpToFinishMs=...

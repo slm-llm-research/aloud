@@ -1,5 +1,5 @@
 import asyncio, base64, json, sys, os, numpy as np, soundfile as sf, websockets, itertools
-key = [l.split("=",1)[1].strip().strip('"') for l in open(os.path.expanduser("~/Library/Application Support/InstructFlow/keys.env")) if l.startswith("ELEVENLABS_API_KEY")][0]
+key = [l.split("=",1)[1].strip().strip('"') for l in open(os.path.expanduser("~/Library/Application Support/Aloud/keys.env")) if l.startswith("ELEVENLABS_API_KEY")][0]
 async def run(path, noise, params):
     a, sr = sf.read(path, dtype="float32")
     if noise:

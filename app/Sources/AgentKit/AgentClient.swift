@@ -7,7 +7,7 @@ public enum AgentClientError: Error, Equatable {
     case timeout
 }
 
-/// Talks to instructflow-agentd over its Unix socket. Reconnects automatically; events arrive on the main
+/// Talks to aloud-agentd over its Unix socket. Reconnects automatically; events arrive on the main
 /// actor via `onEvent`.
 @MainActor
 public final class AgentClient {
@@ -20,7 +20,7 @@ public final class AgentClient {
     private var buffer = Data()
     private var nextID = 1
     private var waiters: [Int: CheckedContinuation<[String: AnyCodableValue], Error>] = [:]
-    private let queue = DispatchQueue(label: "instructflow.agentclient")
+    private let queue = DispatchQueue(label: "aloud.agentclient")
     private var reconnectTask: Task<Void, Never>?
 
     public init(socketPath: String) {
@@ -144,6 +144,13 @@ public final class AgentClient {
 
     public func respond(stepId: String, approve: Bool) async throws {
         try await call("approval.respond", ["stepId": stepId, "decision": approve ? "approve" : "deny"])
+    }
+
+    /// Finished tasks from agentd's audit log, newest first (running ones come from live events).
+    @MainActor
+    public func history(limit: Int = 50) async throws -> [TaskStore.AgentTask] {
+        let r = try await call("task.history", ["limit": limit])
+        return TaskStore.parseHistory(r["tasks"]?.json ?? Data("[]".utf8))
     }
 
     @discardableResult

@@ -1,5 +1,5 @@
 import AppKit
-import InstructFlowCore
+import AloudCore
 
 /// The small floating pill near the bottom of the screen. It is a non-activating panel, so showing it
 /// never steals focus from the app you're dictating into.

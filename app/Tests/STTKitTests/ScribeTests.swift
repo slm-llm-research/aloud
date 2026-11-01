@@ -48,8 +48,8 @@ struct ScribeProtocolTests {
     }
 }
 
-/// INSTRUCTFLOW_INTEGRATION=1 ELEVENLABS_API_KEY=... swift test --filter ScribeLive
-@Suite("ScribeLive", .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_INTEGRATION"] == "1"
+/// ALOUD_INTEGRATION=1 ELEVENLABS_API_KEY=... swift test --filter ScribeLive
+@Suite("ScribeLive", .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"
                                && ProcessInfo.processInfo.environment["ELEVENLABS_API_KEY"] != nil))
 struct ScribeLiveTests {
     @Test func streamsAtRealTimeAndCommitsOnKeyUp() async throws {

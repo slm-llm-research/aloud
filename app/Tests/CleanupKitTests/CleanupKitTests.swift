@@ -254,8 +254,8 @@ struct LLMWireTests {
 
 // MARK: - Live APIs (opt-in)
 
-/// INSTRUCTFLOW_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter CleanupLive
-@Suite("CleanupLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_INTEGRATION"] == "1"))
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter CleanupLive
+@Suite("CleanupLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
 struct CleanupLiveTests {
     static let env = ProcessInfo.processInfo.environment
 

@@ -40,7 +40,7 @@ struct AppProfileTests {
         #expect(AppProfiles.terms(fromWindowTitle: "auth_middleware.ts — api-server") == ["auth_middleware.ts", "api-server"])
         #expect(AppProfiles.terms(fromWindowTitle: "● Session.swift — Murmur") == ["Session.swift"])
         #expect(AppProfiles.terms(fromWindowTitle: "✳ Fix flaky test — claude — 120×40") == [])
-        #expect(AppProfiles.terms(fromWindowTitle: "voice-flow — -zsh — 80×24") == ["voice-flow", "-zsh"])
+        #expect(AppProfiles.terms(fromWindowTitle: "aloud-app — -zsh — 80×24") == ["aloud-app", "-zsh"])
         #expect(AppProfiles.terms(fromWindowTitle: nil).isEmpty)
     }
 }
@@ -190,8 +190,8 @@ struct RestructureGuardrailTests {
 }
 
 /// The four rambling coding requests from the M0 benchmark, through the real LLMs, in the coding-agent mode.
-/// INSTRUCTFLOW_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter CodingLive
-@Suite("CodingLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_INTEGRATION"] == "1"))
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter CodingLive
+@Suite("CodingLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
 struct CodingLiveTests {
     static let env = ProcessInfo.processInfo.environment
     static let terminal = AppContext(bundleID: "com.apple.Terminal", appName: "Terminal", windowTitle: "api-server — claude")

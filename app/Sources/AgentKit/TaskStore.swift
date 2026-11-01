@@ -8,7 +8,8 @@ import Observation
 @Observable
 public final class TaskStore {
     public enum State: Equatable, Sendable {
-        case running, waiting, done, failed, stopped
+        /// `interrupted`: agentd stopped (quit, crash) before the task finished; from history only.
+        case running, waiting, done, failed, stopped, interrupted
     }
 
     public struct AgentTask: Equatable, Sendable, Identifiable {
@@ -49,7 +50,7 @@ public final class TaskStore {
     /// Newest first; finished tasks are kept (capped) so the menu can show recent history.
     public private(set) var tasks: [AgentTask] = []
     public private(set) var approvals: [AgentProtocol.ApprovalRequest] = []
-    public static let historyLimit = 20
+    public static let historyLimit = 50
 
     private let now: () -> Date
 
@@ -94,6 +95,51 @@ public final class TaskStore {
         case .error(let id, let message):
             finish(id, state: message == "cancelled" ? .stopped : .failed,
                    summary: message == "cancelled" ? "Stopped." : message)
+        }
+    }
+
+    /// Adds tasks from agentd's history that the store doesn't have (after a restart, or older ones).
+    /// Live state always wins over history for the same id.
+    public func mergeHistory(_ past: [AgentTask]) {
+        let known = Set(tasks.map(\.id))
+        let new = past.filter { !known.contains($0.id) }
+        guard !new.isEmpty else { return }
+        tasks = (tasks + new).sorted { $0.startedAt > $1.startedAt }
+        trim()
+    }
+
+    /// The `tasks` array of a task.history response.
+    nonisolated public static func parseHistory(_ data: Data) -> [AgentTask] {
+        guard let rows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        let date = { (v: Any?) in (v as? Double).map { Date(timeIntervalSince1970: $0 / 1000) } }
+        return rows.compactMap { r in
+            guard let id = r["taskId"] as? String, let started = date(r["startedAt"]) else { return nil }
+            var t = AgentTask(id: id, heard: r["utterance"] as? String ?? "", startedAt: started)
+            switch r["state"] as? String {
+            case "done": t.state = .done
+            case "failed": t.state = .failed
+            case "stopped": t.state = .stopped
+            default: t.state = .interrupted
+            }
+            t.summary = r["summary"] as? String ?? ""
+            if t.state == .interrupted, t.summary.isEmpty { t.summary = "Interrupted: the agent stopped before it finished." }
+            t.endedAt = date(r["endedAt"])
+            t.inputTokens = r["inputTokens"] as? Int ?? 0
+            t.outputTokens = r["outputTokens"] as? Int ?? 0
+            t.plan = (r["plan"] as? [[String: Any]] ?? []).compactMap { p in
+                (p["content"] as? String).map {
+                    AgentProtocol.PlanItem(content: $0, status: AgentProtocol.PlanStatus(rawValue: p["status"] as? String ?? "") ?? .pending)
+                }
+            }
+            t.steps = (r["steps"] as? [[String: Any]] ?? []).compactMap { s in
+                guard let status = AgentProtocol.StepStatus(rawValue: s["status"] as? String ?? "") else { return nil }
+                return AgentProtocol.Step(taskId: id, stepId: s["stepId"] as? String ?? UUID().uuidString,
+                                          tool: s["tool"] as? String ?? "", title: s["title"] as? String ?? "",
+                                          risk: AgentProtocol.Risk(rawValue: s["risk"] as? String ?? "") ?? .read,
+                                          status: status, result: s["result"] as? String ?? "",
+                                          startedAt: date(s["startedAt"]), endedAt: date(s["endedAt"]))
+            }
+            return t
         }
     }
 

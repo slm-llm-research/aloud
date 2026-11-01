@@ -1,4 +1,4 @@
-# E. Making the Background Agent Visible: UI Patterns and macOS Surfaces for InstructFlow
+# E. Making the Background Agent Visible: UI Patterns and macOS Surfaces for Aloud
 
 *Research date: 2026-10-31. Scope: how to make `agentd` visible, glanceable and trustworthy in a native macOS way. This file does not revisit hotkeys, insertion, audio or distribution, which are covered in earlier research files.*
 
@@ -8,7 +8,7 @@
 
 - **The problem is the event model as much as the UI.** Five RPC events (`task.started`, `task.progress(string)`, `approval.request`, `task.result`, `task.error`) cannot drive a plan, a timeline, live streaming, cost or history. Every product studied here sends **typed activities** (thought / action / elicitation / response / error) and a **replaceable plan array**. Linear publishes the cleanest public version of that contract ([Linear agent interaction](https://linear.app/developers/agent-interaction.md)). Do this first (section 4).
 - **The pattern that converged across products in 2026** has four parts: a persistent *status glyph*, a *plan checklist*, a *step timeline with expandable tool calls and logs*, and a distinct, loud **"needs you"** state that routes to one approval surface. Most also add a notification inbox and a history/replay view. Codex, Cursor 3, Warp, Copilot, Devin, Cowork and Linear all ship some version of this.
-- **Recommended direction for InstructFlow: Concept A + B.** A notch "island" (glance and peek, holding approvals and voice state) plus a menu-bar Task Center (task list, timeline, history). A Mission-Control-style window (D) can come later as a "History & Replay" window. Build the island with MIT-licensed **DynamicNotchKit** or your own `NSPanel`, not with GPL-3.0 Boring Notch code, which is incompatible with Apache-2.0 distribution.
+- **Recommended direction for Aloud: Concept A + B.** A notch "island" (glance and peek, holding approvals and voice state) plus a menu-bar Task Center (task list, timeline, history). A Mission-Control-style window (D) can come later as a "History & Replay" window. Build the island with MIT-licensed **DynamicNotchKit** or your own `NSPanel`, not with GPL-3.0 Boring Notch code, which is incompatible with Apache-2.0 distribution.
 - **Don't rely on Live Activities.** On the Mac they appear only when they come from an iPhone through iPhone Mirroring ([Apple Support](https://support.apple.com/en-us/120684)). Notification actions should never carry *Approve* for write, execute or send effects. Use them for *Review…* and *Stop* only.
 
 ---
@@ -59,7 +59,7 @@ Linear's session states are `pending`, `active`, `error`, `awaitingInput`, `comp
 |---|---|---|---|
 | **Menu bar extra (window style)** | Always-reachable task center; status glyph with a badge | No first-party API to open or close it from code, reach the `NSStatusItem` or reach its window. The **MenuBarExtraAccess** package adds `isPresented`, status-item access and window introspection ([MenuBarExtraAccess](https://swiftpackageregistry.com/orchetect/MenuBarExtraAccess)). Menu bar space is crowded on notched Macs | `MenuBarExtra { }.menuBarExtraStyle(.window)`, macOS 13+ ([Apple](https://developer.apple.com/documentation/swiftui/windowmenubarextrastyle.md)); or `NSStatusItem` + `NSPanel` for full control |
 | **Notch "island" overlay** | Glance (pill) → peek (expanded) right next to where the eye already goes; ideal for voice state | No public notch API. You position a borderless panel yourself. Must fall back to a floating pill on non-notched and external displays. Can collide with other notch apps | `NSScreen.safeAreaInsets.top > 0` means a notch. `auxiliaryTopLeftArea` and `auxiliaryTopRightArea` (macOS 12+) give the unobscured rects on either side, so the notch is the gap between them ([Apple](https://developer.apple.com/documentation/appkit/nsscreen/auxiliarytopleftarea-uglc.md)) |
-| **Floating non-activating NSPanel** | Approval cards, task drawer, side dock; keyboard input **without activating InstructFlow or stealing the frontmost app** | Must manage level, Spaces and full-screen behaviour yourself | `NSPanel` with `.nonactivatingPanel`, `isFloatingPanel = true`, `level = .floating`, `collectionBehavior += .fullScreenAuxiliary`, override `canBecomeKey`, host SwiftUI in `NSHostingView` ([Cindori floating panel](https://cindori.com/developer/floating-panel)) |
+| **Floating non-activating NSPanel** | Approval cards, task drawer, side dock; keyboard input **without activating Aloud or stealing the frontmost app** | Must manage level, Spaces and full-screen behaviour yourself | `NSPanel` with `.nonactivatingPanel`, `isFloatingPanel = true`, `level = .floating`, `collectionBehavior += .fullScreenAuxiliary`, override `canBecomeKey`, host SwiftUI in `NSHostingView` ([Cindori floating panel](https://cindori.com/developer/floating-panel)) |
 | **Liquid Glass (macOS 26)** | Native 2026 look for the island, dock and controls | HIG: glass is for the **controls/navigation layer, not content**. Use it sparingly. Use **regular** for text-heavy components (alerts, popovers). Use clear only over rich media ([HIG Materials](https://developer.apple.com/design/human-interface-guidelines/materials.md)). Needs a fallback on macOS 14/15 | `.glassEffect(.regular, in: .capsule)`, `GlassEffectContainer`, `.glassEffectID(_:in:)` for morphing pill ↔ expanded, `.buttonStyle(.glass/.glassProminent)`. Reduce Transparency, Increase Contrast and Reduce Motion adapt automatically ([summary](https://dev.to/diskcleankit/liquid-glass-in-swift-official-best-practices-for-ios-26-macos-tahoe-1coo)) |
 | **Live Activities on Mac** | — | Apple documents only Live Activities **from iPhone**, via iPhone Mirroring, shown in the menu bar ([Apple Support](https://support.apple.com/en-us/120684)). No native-Mac route is documented, so don't plan on it. A future iOS companion app could use it for remote approvals | ActivityKit (iOS) |
 | **UNUserNotificationCenter actionable notifications** | "Task done", "Agent needs you" when the island is hidden or the user is in full-screen or another Space | Actions run from a tiny banner with no preview, so they're easy to click by accident. Focus can delay delivery. Options are only `.foreground`, `.destructive` and `.authenticationRequired` ([Apple](https://developer.apple.com/tutorials/data/documentation/usernotifications/unnotificationactionoptions.md)). Use **Time Sensitive** only for things relevant now (an approval with a 2-minute timeout qualifies; "task done" does not) ([HIG Notifications](https://developer.apple.com/design/human-interface-guidelines/managing-notifications.md)) | `UNNotificationCategory` with actions `Review…` (`.foreground`) and `Deny` / `Stop` (`.destructive`). **Never Approve** for write, execute, send or network_write |
@@ -72,7 +72,7 @@ Linear's session states are `pending`, `active`, `error`, `awaitingInput`, `comp
 
 - **Libraries:**
   - **DynamicNotchKit** (MIT, macOS 13+) wraps any SwiftUI view, handles notch safe areas and falls back to a `.floating` style on non-notched Macs ([GitHub](https://github.com/MrKai77/DynamicNotchKit)).
-  - **Boring Notch** (11k+ stars) is a good UX reference: hover to expand, a music, shelf and HUD replacement. It is **GPL-3.0** and requires macOS 14+ ([GitHub](https://github.com/TheBoredTeam/boring.notch)). Read it for ideas only, and don't vendor its code into Apache-2.0 InstructFlow.
+  - **Boring Notch** (11k+ stars) is a good UX reference: hover to expand, a music, shelf and HUD replacement. It is **GPL-3.0** and requires macOS 14+ ([GitHub](https://github.com/TheBoredTeam/boring.notch)). Read it for ideas only, and don't vendor its code into Apache-2.0 Aloud.
   - **NotchNook** is the commercial reference: widgets in the island and drop "pipelines" that run on dropped files ([iMore](https://www.imore.com/apps/mac-apps/notchnook-app-that-turns-macbook-notch-into-a-dynamic-island-is-now-better-than-ever)).
 - **Geometry:** `let s = NSScreen.main!`. If `s.safeAreaInsets.top > 0`, the notch rect is `x = auxiliaryTopLeftArea!.maxX`, `width = auxiliaryTopRightArea!.minX - x`, `height = safeAreaInsets.top`, at the top of `s.frame`. Anchor a borderless `NSPanel` (black background that blends into the notch) centred on that rect. Grow it downward and sideways. Recompute on `NSApplication.didChangeScreenParametersNotification`.
 - **Window flags:** `styleMask = [.borderless, .nonactivatingPanel]`, `level = .statusBar` (above menu bar content), `collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]`, `hasShadow = false` while compact. `ignoresMouseEvents` stays true in compact mode, except for a hover tracking area.
@@ -83,7 +83,7 @@ Linear's session states are `pending`, `active`, `error`, `awaitingInput`, `comp
 - A `.nonactivatingPanel` whose `canBecomeKey` returns true can take keystrokes while the user's frontmost app stays active. The current `AgentPanel` "takes focus", which this fixes.
 - Make the panel key only when an approval is shown, then hand key status back (`orderOut` restores the previous key window).
 - Bindings: **⌘↩ Approve**, **Esc Deny**, **⌘. Stop task**, **Space toggles preview**, **Tab cycles effect rows**.
-- InstructFlow already owns a CGEventTap. Add a global "summon pending approval" chord (for example Right Shift + Return) that brings the card forward. **Don't allow a global chord to approve unseen.** Approve only works while the card is visible and has been on screen for ≥ 400 ms. That debounce prevents an accidental approval from a stray Enter meant for another app.
+- Aloud already owns a CGEventTap. Add a global "summon pending approval" chord (for example Right Shift + Return) that brings the card forward. **Don't allow a global chord to approve unseen.** Approve only works while the card is visible and has been on screen for ≥ 400 ms. That debounce prevents an accidental approval from a stray Enter meant for another app.
 - Mirror Claude Code's global Esc for **stop**: consume the keypress while a task is in an acting state. Prefer a less-common chord, because Esc is heavily used.
 
 ---
@@ -191,7 +191,7 @@ Implementation notes:
 
 ---
 
-## 5. UI concept options for InstructFlow
+## 5. UI concept options for Aloud
 
 ### Concept A: Notch Island + expandable Task Drawer
 
@@ -253,7 +253,7 @@ A status item whose glyph is the glance. Clicking opens a window-style popover w
  Menu bar:   …  🎙  ◐²  ⌁  Wi-Fi  Fri 10:42        (◐ = agent busy, ² = needs-you count, amber)
 
             ┌──────────────────────────────────────────────────────────────┐
-            │ InstructFlow Agent        [Running 2] [Needs you 1] [Done]  ⚙ │
+            │ Aloud Agent        [Running 2] [Needs you 1] [Done]  ⚙ │
             ├──────────────────────────────────────────────────────────────┤
             │ ⚠ Draft reply to vendor email     needs approval · 0:42      │
             │ ◐ Fix failing test (Claude Code)  step 3/6 · 2:10 · $0.21    │
@@ -326,7 +326,7 @@ A slim, translucent column at the screen edge. It is collapsed to an 8-pt "rail"
 A full window with a sidebar of tasks, a centre timeline and a right inspector (diff, files, audit). It is the "full" level of disclosure, and the only place for replay.
 
 ```
-┌─ InstructFlow · Agent ──────────────────────────────────────────────────────────────┐
+┌─ Aloud · Agent ──────────────────────────────────────────────────────────────┐
 │ ◀ ▶  Today ▾   🔍 Search tasks                                 Autonomy: Ask ▾  ⏹ All │
 ├───────────────────┬───────────────────────────────────────────┬─────────────────────┤
 │ NEEDS YOU (1)     │ Fix failing test  · active · 2:10 · $0.21 │ INSPECTOR           │
@@ -394,7 +394,7 @@ A full window with a sidebar of tasks, a centre timeline and a right inspector (
 - **Licensing.** Boring Notch is GPL-3.0, so don't copy its code. DynamicNotchKit is MIT, which is fine with Apache-2.0.
 - **Notification approvals.** Banners hide the payload, and Focus can delay them. Keep Approve out of notification actions for any approval-requiring effect. The auto-deny timeout must surface in history ("Denied: timed out").
 - **Over-animation.** Throttle deltas to ≤ 4 Hz and coalesce like Claude Code's 300 ms debounce. Reasoning streams at token rate would make the island flicker.
-- **Prompt-injection surfacing.** If a tool result contains instructions (from a web page or a file), show it as data in the timeline. Never render it as a UI command, and flag suspected injection on the card. Claude computer use flags on-screen injection, and InstructFlow should do the same.
+- **Prompt-injection surfacing.** If a tool result contains instructions (from a web page or a file), show it as data in the timeline. Never render it as a UI command, and flag suspected injection on the card. Claude computer use flags on-screen injection, and Aloud should do the same.
 - **Liquid Glass misuse.** No glass on timeline or diff content; regular variant only (HIG).
 - **Multi-display and clamshell.** Choose the island screen by `NSScreen.main` (the key window's screen) or by mouse location, and let the user pin it.
 

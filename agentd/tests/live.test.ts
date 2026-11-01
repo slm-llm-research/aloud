@@ -9,12 +9,12 @@ import { AuditLog } from "../src/audit.js";
 import { defaultConfig, loadAnthropicKey } from "../src/config.js";
 import { ALL_TOOLS } from "../src/tools/index.js";
 
-/** Real Claude Opus 5.5. Run with: INSTRUCTFLOW_INTEGRATION=1 npx vitest run tests/live.test.ts */
+/** Real Claude Opus 5.5. Run with: ALOUD_INTEGRATION=1 npx vitest run tests/live.test.ts */
 const key = loadAnthropicKey();
-const live = process.env.INSTRUCTFLOW_INTEGRATION === "1" && !!key;
+const live = process.env.ALOUD_INTEGRATION === "1" && !!key;
 
 function project() {
-  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "instructflow-live-")));
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "aloud-live-")));
   mkdirSync(path.join(root, "docs"));
   writeFileSync(path.join(root, "README.md"), "# Demo\n");
   writeFileSync(path.join(root, "docs/guide.md"), "Guide\n");
@@ -75,7 +75,7 @@ describe.skipIf(!live)("live agent (Claude Opus 5.5)", () => {
 
   it("finds a misheard folder name ('Agent D' -> agentd) and runs its tests after approval", async () => {
     const root = project();
-    const dir = path.join(root, "voice-flow/agentd");
+    const dir = path.join(root, "aloud/agentd");
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, "package.json"),
       JSON.stringify({ name: "x", scripts: { test: "node -e \"console.log('31 passed, 0 failed')\"" } }));

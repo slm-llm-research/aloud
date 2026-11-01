@@ -1,6 +1,6 @@
 # B. MCP Ecosystem: How agentd Reaches Web Services by Voice
 
-*Research date: 2026-10-31. Scope: integrating Model Context Protocol (MCP) servers into InstructFlow's `agentd` (Node 22, TypeScript, `@anthropic-ai/sdk` tool runner, Effect-typed ToolContracts). Every claim below is tied to a source in the list at the end. Where a source was third-party or a detail could not be confirmed, the text says so.*
+*Research date: 2026-10-31. Scope: integrating Model Context Protocol (MCP) servers into Aloud's `agentd` (Node 22, TypeScript, `@anthropic-ai/sdk` tool runner, Effect-typed ToolContracts). Every claim below is tied to a source in the list at the end. Where a source was third-party or a detail could not be confirmed, the text says so.*
 
 ---
 
@@ -54,7 +54,7 @@ What a 2026-07-28 client must do [S3][S4][S10][S12]:
 - **URL mode:** an out-of-band browser flow for secrets, third-party OAuth and payments. The client **must** show the full URL with the domain highlighted, get consent, never pre-fetch it, and open it somewhere the client or LLM cannot inspect (the system browser, not a webview).
 - Response actions are `accept`, `decline` or `cancel`. Under 2026-07-28 the answers come back on the *retried* request. [S11]
 
-**For InstructFlow:** render elicitations as AgentPanel cards. Form fields can be filled by voice, but **submitting stays a click**. URL-mode requests open in the default browser through `NSWorkspace`, never through a shell (§4).
+**For Aloud:** render elicitations as AgentPanel cards. Form fields can be filled by voice, but **submitting stays a click**. URL-mode requests open in the default browser through `NSWorkspace`, never through a shell (§4).
 
 ### 1.5 The official MCP Registry
 
@@ -62,7 +62,7 @@ What a 2026-07-28 client must do [S3][S4][S10][S12]:
 - It holds **metadata only** (`server.json`), pointing to npm, PyPI, NuGet, crates, OCI images, MCPB bundles, or `remotes` URLs.
 - Namespaces are verified (`io.github.<user>/…` through GitHub sign-in; reverse-DNS such as `com.example/…` through DNS or HTTP proof). **Code is not scanned.** Security scanning is left to package registries and downstream marketplaces. [S6][S17]
 
-**For InstructFlow:** use the registry for *discovery* in a "Connect a service" sheet. Trust comes only from InstructFlow's own curated allowlist (§4), never from being listed.
+**For Aloud:** use the registry for *discovery* in a "Connect a service" sheet. Trust comes only from Aloud's own curated allowlist (§4), never from being listed.
 
 ### 1.6 Three ways to wire MCP into a Claude app
 
@@ -89,14 +89,14 @@ agentd/
 
 **Mounting**
 
-- **Local stdio:** never use `npx -y pkg@latest`. Install each server into `~/Library/Application Support/InstructFlow/mcp/<id>/` with an **exact version plus a lockfile integrity hash**, and launch the resolved binary. Launch under a restrictive macOS sandbox profile (`sandbox-exec` with deny-default file access plus explicit allowed roots, or a container through Docker's MCP Toolkit/Gateway where available) with a minimal env. Inject secrets from the Keychain at spawn time only. [S12][S28]
+- **Local stdio:** never use `npx -y pkg@latest`. Install each server into `~/Library/Application Support/Aloud/mcp/<id>/` with an **exact version plus a lockfile integrity hash**, and launch the resolved binary. Launch under a restrictive macOS sandbox profile (`sandbox-exec` with deny-default file access plus explicit allowed roots, or a container through Docker's MCP Toolkit/Gateway where available) with a minimal env. Inject secrets from the Keychain at spawn time only. [S12][S28]
 - **Remote HTTP:** connect with a Streamable HTTP client transport. Send `MCP-Protocol-Version: 2026-07-28` and fall back to 2025-11-25. Accept HTTPS only, block private IP ranges during OAuth discovery (SSRF), validate redirects hop by hop, and keep the SDK's same-origin redirect behaviour. [S8][S12]
 
 **OAuth and Keychain**
 
-- Host a **CIMD JSON** (for example `https://instructflow.dev/oauth/client.json`) with `client_name`, `redirect_uris: ["http://127.0.0.1/callback"]`, and `application_type: "native"`. Fall back to DCR. Some providers (Google Workspace, Slack) require a pre-registered client: Google needs a GCP OAuth client, and Slack needs a directory-published or internal app. [S3][S19][S25]
+- Host a **CIMD JSON** (for example `https://aloud.dev/oauth/client.json`) with `client_name`, `redirect_uris: ["http://127.0.0.1/callback"]`, and `application_type: "native"`. Fall back to DCR. Some providers (Google Workspace, Slack) require a pre-registered client: Google needs a GCP OAuth client, and Slack needs a directory-published or internal app. [S3][S19][S25]
 - agentd starts the flow and asks the Swift app over JSON-RPC to open the authorization URL in the default browser (`NSWorkspace.open`, no shell). A loopback listener catches the code. Validate `state` and `iss`, then redeem with the PKCE verifier and `resource`.
-- **Keychain:** tokens are stored by the Swift side (`SecItemAdd`, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, service `dev.instructflow.mcp`, account `<issuer>|<resource>|<client_id>`). agentd fetches tokens over an authenticated RPC just in time and holds them only in memory. **Tokens never enter the model context, the audit log or env vars of remote servers.** Refresh happens proactively, and step-up requests the union of scopes.
+- **Keychain:** tokens are stored by the Swift side (`SecItemAdd`, `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, service `dev.aloud.mcp`, account `<issuer>|<resource>|<client_id>`). agentd fetches tokens over an authenticated RPC just in time and holds them only in memory. **Tokens never enter the model context, the audit log or env vars of remote servers.** Refresh happens proactively, and step-up requests the union of scopes.
 - Request the minimum scopes. For example, Gmail `gmail.readonly` + `gmail.compose` (drafts), not full `mail.google.com`. [S19]
 
 **Effect mapping (the core policy)**
@@ -163,7 +163,7 @@ Legend: **Off** = official, run by the vendor; **Com** = community; **R** = remo
 |---|---|---|---|---|
 | **Notion** `mcp.notion.com` | Off | R | OAuth 2.1 | "Add 'Vancouver visa docs' to my Notion to-do page." [S16] |
 | **Confluence** (Atlassian remote) | Off | R | OAuth 2.1 | "Find the runbook for the Acme sandbox." [S16] |
-| **Obsidian** (vault servers or the Local REST API plugin) | Com | L | plugin API key | "What did I write about MRTR in my notes?" InstructFlow's own `read_file` over the vault folder may be enough. |
+| **Obsidian** (vault servers or the Local REST API plugin) | Com | L | plugin API key | "What did I write about MRTR in my notes?" Aloud's own `read_file` over the vault folder may be enough. |
 
 ### 2.5 Productivity
 
@@ -242,14 +242,14 @@ agentd ── finance-ro policy bundle ──┬─ SnapTrade MCP (read scope)  
 ### 3.3 Why trading must stay blocked (`spend_money`)
 
 - **Irreversible and fast.** Robinhood itself warns that agent strategies "can act quickly and may be hard to stop in real time" and that customers bear all the risk. [S20][S22]
-- **STT error surface.** "Buy fifteen" vs "fifty", "sell Meta" vs "sell metal". InstructFlow's fidelity guardrail lowers that risk but cannot remove it, and a quantity mistake costs real money.
+- **STT error surface.** "Buy fifteen" vs "fifty", "sell Meta" vs "sell metal". Aloud's fidelity guardrail lowers that risk but cannot remove it, and a quantity mistake costs real money.
 - **Prompt injection through market content.** News, filings and watchlist notes are attacker-controllable text. A data-borne injection like the GitHub MCP exploit could turn into an order. [S13]
-- **Voice approval is spoofable** (other people talking, TTS from a video playing in the background). InstructFlow's rule "no voice approval for send/spend/delete" must hold here without exception.
+- **Voice approval is spoofable** (other people talking, TTS from a video playing in the background). Aloud's rule "no voice approval for send/spend/delete" must hold here without exception.
 - **Regulatory and accountability exposure.** Robinhood states it doesn't supervise or audit customers' agents, and dispute resolution compares your instructions with the agent's actions. An open-source portfolio project shouldn't ship a trading path. [S22]
 
 ### 3.4 Unofficial Robinhood libraries (robin_stocks and similar)
 
-These libraries reverse-engineer private endpoints with your username, password and MFA. Risks: **possible ToS violation leading to account restriction or termination**, possible exposure under computer-misuse law (CFAA arguments), silent breakage when endpoints change, and incorrect position data. They also put full-account credentials (not a scoped token) on disk. [S43] Now that an official MCP and the Crypto API exist, there is no reason to use them. **InstructFlow should refuse to ship or recommend them.**
+These libraries reverse-engineer private endpoints with your username, password and MFA. Risks: **possible ToS violation leading to account restriction or termination**, possible exposure under computer-misuse law (CFAA arguments), silent breakage when endpoints change, and incorrect position data. They also put full-account credentials (not a scoped token) on disk. [S43] Now that an official MCP and the Crypto API exist, there is no reason to use them. **Aloud should refuse to ship or recommend them.**
 
 ---
 

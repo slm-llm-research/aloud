@@ -1,6 +1,6 @@
 import AppKit
 import ApplicationServices
-import InstructFlowCore
+import AloudCore
 
 /// Reads the frontmost app and its focused window's title via Accessibility. Editors put the open
 /// file and project in the title ("auth.ts — api-server"), terminals the running command.

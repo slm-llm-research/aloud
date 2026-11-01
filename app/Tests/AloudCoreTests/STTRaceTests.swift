@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import InstructFlowCore
+@testable import AloudCore
 
 struct Boom: Error {}
 

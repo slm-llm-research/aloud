@@ -1,6 +1,6 @@
 import Foundation
 
-/// Carries settings over from the app's old name (Murmur) on first launch as InstructFlow:
+/// Carries settings over from the app's old names (InstructFlow, earlier Murmur) on first launch as Aloud:
 /// keys.env, dictionary.txt and agent.json. Runs only when the new folder doesn't exist yet,
 /// so it never overwrites anything. Sockets and other non-regular files are skipped.
 public enum DataMigration {

@@ -38,9 +38,9 @@ struct ModeRoutingTests {
 
     @Test func terminalAgentVersusShell() {
         let t = "com.apple.Terminal"
-        #expect(mode("run the tests", t, title: "voice-flow — claude — 120×40") == .codingAgent)
+        #expect(mode("run the tests", t, title: "aloud — claude — 120×40") == .codingAgent)
         #expect(mode("run the tests", t, title: "✳ Fix login bug") == .codingAgent)
-        #expect(mode("git checkout dash b fix slash auth", t, title: "voice-flow — -zsh — 80×24") == .terminal)
+        #expect(mode("git checkout dash b fix slash auth", t, title: "aloud — -zsh — 80×24") == .terminal)
         // Long dictation at what looks like a shell is almost certainly an agent we couldn't see.
         let long = Array(repeating: "word", count: 30).joined(separator: " ")
         #expect(mode(long, t, title: "-zsh") == .codingAgent)
@@ -235,7 +235,7 @@ struct CleanerModeTests {
 }
 
 /// The modes through the real LLMs, including two real dictations from the log.
-/// INSTRUCTFLOW_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter ModesLive
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter ModesLive
 /// The rows of the 2026-10-31 field test, as speech-to-text wrote them.
 @Suite("Field test fixes")
 struct FieldTestTests {
@@ -309,7 +309,7 @@ struct FieldTestTests {
                                           + "Don't touch the database schema.")
         #expect(s == "Goal: Fix the redirect in authCheck.ts and add a test.\nContext: The login page breaks on Safari.\n"
                 + "Constraints: Don't touch the database schema.")
-        let q = OutputHygiene.promptShape("So, if I enable our InstructFlow code base, how do I actually test it in a different "
+        let q = OutputHygiene.promptShape("So, if I enable our Aloud code base, how do I actually test it in a different "
                                           + "language? Would it actually work? Can you format, give me an example?")
         #expect(q.hasPrefix("Goal: So, if I enable"))
     }
@@ -374,10 +374,10 @@ struct FieldTestTests {
     }
 }
 
-@Suite("ModesLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_INTEGRATION"] == "1"))
+@Suite("ModesLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
 struct ModesLiveTests {
     static let env = ProcessInfo.processInfo.environment
-    static let claudeCode = AppContext(bundleID: "com.apple.Terminal", appName: "Terminal", windowTitle: "voice-flow — claude — 120×40")
+    static let claudeCode = AppContext(bundleID: "com.apple.Terminal", appName: "Terminal", windowTitle: "aloud — claude — 120×40")
 
     struct Case {
         var input: String
@@ -400,7 +400,7 @@ struct ModesLiveTests {
              ctx: claudeCode, mode: .codingAgent, structured: false,
              must: ["sub-agent", "research"], mustNot: ["sub-sub", "\u{2011}", "Goal:"]),
         // Real dictation from the log: a conversational request, 100+ words, used to become Goal/Requirements.
-        Case(input: "Also, this very text is being typed using, um, InstructFlow, and I'm seeing that when I use sub- sub-agent, "
+        Case(input: "Also, this very text is being typed using, um, Aloud, and I'm seeing that when I use sub- sub-agent, "
              + "it basically types sub twice. So can that also be added? Can this task be added to the list that we need to "
              + "clean the output which is being presented in the text app? Apparently, that text which is supposed to be "
              + "displayed needs to be, like, really clean. So maybe, like, a post-processing from the backend LLM could be "

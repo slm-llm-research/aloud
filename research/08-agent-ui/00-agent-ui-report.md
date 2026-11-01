@@ -1,6 +1,6 @@
 # 08. Making the Background Agent Visible: UI Report
 
-*Research date: 2026-10-31. Scope: how InstructFlow should show what `agentd` is doing (planning, acting, waiting for approval, finished) in a polished, native macOS way.*
+*Research date: 2026-10-31. Scope: how Aloud should show what `agentd` is doing (planning, acting, waiting for approval, finished) in a polished, native macOS way.*
 
 The detailed research (how ~12 agent products show background work, the macOS surfaces and APIs, design guidance, and four concepts with wireframes) is in **[E. Agent UI patterns](E-agent-ui-patterns.md)**. This document is the decision and the build plan, tied to the current code.
 
@@ -13,7 +13,7 @@ The detailed research (how ~12 agent products show background work, the macOS su
    - **Agent Island** at the top centre of the screen, hugging the notch where there is one. It shows live state at a glance, expands on hover into the plan and a live tail, and turns into the **approval card in place, without taking focus from your current app**. It replaces both today's bottom pill and the approval window.
    - **Task Center** in the menu bar: every task (running, needs you, done, failed), each task's step timeline, diffs, cost and time, and history.
    - **Notifications** only as a fallback when the island isn't visible (full-screen apps, another Space). They never carry an "Approve" button.
-3. **Approval cards become the centrepiece.** They show the plain-language action, a risk badge from the declared Effect, the **exact** payload (a real diff for file writes, the exact command and folder for shell), a one-line "why", a scope choice and a visible auto-deny countdown. Shortcuts are ⌘↩ approve, Esc deny and ⌘. stop, all working without bringing InstructFlow to the front.
+3. **Approval cards become the centrepiece.** They show the plain-language action, a risk badge from the declared Effect, the **exact** payload (a real diff for file writes, the exact command and folder for shell), a one-line "why", a scope choice and a visible auto-deny countdown. Shortcuts are ⌘↩ approve, Esc deny and ⌘. stop, all working without bringing Aloud to the front.
 4. **Voice belongs in the same surfaces:** show what was heard, the live states (listening → transcribing → planning → acting → waiting → done), "hold Right Shift to steer" while a task runs, and a short spoken summary on completion.
 5. **Effort:** about 1 week for the event model and store, 1 to 1.5 weeks for the Task Center, and 2 to 3 weeks for the island. A cut-down version (store + Task Center + new approval card) fits in about 10 days and already fixes "I can't see what the agent is doing".
 
@@ -21,7 +21,7 @@ The detailed research (how ~12 agent products show background work, the macOS su
 
 ## 2. What the user sees today, and why
 
-Read from `app/Sources/InstructFlow/` and `agentd/src/`:
+Read from `app/Sources/Aloud/` and `agentd/src/`:
 
 | Moment | Today | Problem |
 |---|---|---|
@@ -116,7 +116,7 @@ The agent should be easy to see but never pushy:
 
 ### 3.2 Approval card contents (in order)
 
-1. **Verb + object in plain language:** "Run `swift test` in `app/`", "Write 1 file in `notes/`", "Hand this to Claude Code in `voice-flow`". Today's titles ("Allow write_file?") are a start; drive them from a per-tool `title(input)` in the ToolContract.
+1. **Verb + object in plain language:** "Run `swift test` in `app/`", "Write 1 file in `notes/`", "Hand this to Claude Code in `aloud`". Today's titles ("Allow write_file?") are a start; drive them from a per-tool `title(input)` in the ToolContract.
 2. **Risk badge from the Effect:** read = no card; `write_local` amber; `execute_process` amber+; `network_write` / `send_message` red. Blocked effects never show an Approve button.
 3. **Exact payload:** a unified diff for file writes (new files all green), the exact command plus folder plus which allowlist entry it matched for shell, recipient/subject/body for messages, repo plus instruction for Claude Code.
 4. **Why:** one sentence of the model's rationale, labelled as the model's words, never as a description of what will run. Everything above it comes from the typed call.
@@ -183,7 +183,7 @@ AgentKit (Swift package target)
   TaskStore.swift   NEW    @Observable: tasks by id, plan, activities, live tail (ring buffer),
                            metrics, pending approvals queue, history paging; pure and unit-tested
 
-InstructFlow (app target)
+Aloud (app target)
   Island/          NEW     IslandPanel (NSPanel .borderless+.nonactivatingPanel, level .statusBar,
                            .canJoinAllSpaces, .fullScreenAuxiliary), placed by the notch-side areas;
                            SwiftUI views: CompactPill, PeekDrawer, ApprovalCard, VoiceStateView
@@ -210,9 +210,9 @@ Implementation notes [E §2]:
 | 1 | v2 events + `update_plan` tool + streaming planner + metrics + `stale` | `agentd/src/rpc.ts`, `agent.ts`, `gate.ts`, `approvals.ts`, `tools/contract.ts` | 3–4 days |
 | 2 | Claude Code `stream-json` passthrough; incremental `runProcess` | `agentd/src/tools/index.ts`, `tools/process.ts` | 1–2 days |
 | 3 | Typed protocol + `TaskStore` with unit tests (replay recorded event streams) | `AgentKit/` | 2 days |
-| 4 | New approval card (non-activating, diff, risk badge, countdown, edit, scope) | `InstructFlow/Island/ApprovalCard` | 3 days |
-| 5 | Task Center (list, timeline, diff viewer, cost, history from audit log) | `InstructFlow/TaskCenter/` | 1–1.5 weeks |
-| 6 | Island compact/peek states, voice states, steer by voice; retire `AgentPanel` and fold the HUD in | `InstructFlow/Island/`, `HUD.swift`, `main.swift` | 1.5–2 weeks |
+| 4 | New approval card (non-activating, diff, risk badge, countdown, edit, scope) | `Aloud/Island/ApprovalCard` | 3 days |
+| 5 | Task Center (list, timeline, diff viewer, cost, history from audit log) | `Aloud/TaskCenter/` | 1–1.5 weeks |
+| 6 | Island compact/peek states, voice states, steer by voice; retire `AgentPanel` and fold the HUD in | `Aloud/Island/`, `HUD.swift`, `main.swift` | 1.5–2 weeks |
 | 7 | Notifications fallback; spoken summaries; "status?" | `Notifications/`, agentd | 3 days |
 | Later | History window with replay of a task's timeline; Control Center "pause agent" toggle; desktop widget | | — |
 
@@ -261,9 +261,11 @@ and spoken summaries.
 | Island: compact pill → hover drawer → approval card → done (8 s) / failed (until dismissed) | Done | `AgentUI/AgentIsland.swift` |
 | Notch placement (hangs from the notch, black) and a capsule under the menu bar elsewhere | Done | same |
 | Never takes focus; the card becomes key only when clicked; Approve arms after 400 ms; VoiceOver announcement; Reduce Motion | Done | same |
-| Recent tasks in the menu (Agent Tasks ▸), opening one in the island | Done | `InstructFlow/main.swift` |
+| Recent tasks in the menu (Agent Tasks ▸), opening one in the island | Done | `Aloud/main.swift` |
 | `AgentPanel` (focus-stealing window) | Removed | — |
-| Task Center window, history from the audit log, diff viewer | Not yet | step 5 |
+| Task Center window: filter (all / running / needs you / done / failed) and search; detail with heard text, result, plan, step timeline (result, risk, timing), tokens; inline approve/deny; stop; copy | Done | `AgentUI/TaskCenter.swift` |
+| History from the audit log (`task.history`, rebuilt per task, `interrupted` when agentd stopped mid-task); loaded on connect and when the window opens; 50 kept | Done, unit-tested | `agentd/src/history.ts`, `TaskStore.mergeHistory` |
+| Full diff viewer for Claude Code edits | Not yet | needs step 2 |
 | Claude Code `stream-json` passthrough | Not yet | step 2 |
 | Notifications fallback, steer by voice, spoken summary, "status?" | Not yet | step 7 |
 | Edit… and scope ("allow writes here for this task") on the card | Not yet | needs `approval.respond` with a payload and scope |
@@ -274,5 +276,5 @@ work.
 
 **Verification:**
 - Unit tests: agentd 35 (4 new for timeline events); Swift 230 (5 new for `TaskStore` and parsing).
-- Rendered states: `INSTRUCTFLOW_RENDER_DIR=<dir> swift test --filter IslandRender` writes the compact, notch, drawer, approval and done states to PNG.
-- Live run: a real task over the socket (`git status` in voice-flow, denied). The island window appeared at 347×69, hanging from the notch, grew to 480×252 for the card, showed the result, and hid 8 s later.
+- Rendered states: `ALOUD_RENDER_DIR=<dir> swift test --filter IslandRender` writes the compact, notch, drawer, approval and done states to PNG.
+- Live run: a real task over the socket (`git status` in aloud, denied). The island window appeared at 347×69, hanging from the notch, grew to 480×252 for the card, showed the result, and hid 8 s later.

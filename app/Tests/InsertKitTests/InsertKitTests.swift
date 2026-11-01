@@ -4,7 +4,7 @@ import Testing
 
 /// A private, uniquely named pasteboard so tests never touch your real clipboard.
 private func scratchPasteboard() -> NSPasteboard {
-    NSPasteboard(name: NSPasteboard.Name("instructflow.test.\(UUID().uuidString)"))
+    NSPasteboard(name: NSPasteboard.Name("aloud.test.\(UUID().uuidString)"))
 }
 
 @Suite("Pasteboard save and restore")

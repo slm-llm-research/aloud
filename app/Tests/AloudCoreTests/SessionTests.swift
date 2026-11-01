@@ -1,7 +1,7 @@
 import Foundation
 import HotkeyKit
 import Testing
-@testable import InstructFlowCore
+@testable import AloudCore
 
 final class FakeAudio: AudioCapturing, @unchecked Sendable {
     var onSamples: (@Sendable ([Float]) -> Void)?
@@ -295,7 +295,7 @@ struct StreamingSessionTests {
                         tasks: tasks)
         s.handle(.armPreroll)
         await s.handle(.finish(.task))?.value
-        #expect(s.status == .failed("Agent isn't running (see the InstructFlow menu)"))
+        #expect(s.status == .failed("Agent isn't running (see the Aloud menu)"))
     }
 }
 

@@ -1,8 +1,8 @@
 import Foundation
 import Testing
-@testable import InstructFlowCore
+@testable import AloudCore
 
-@Suite("Data migration from Murmur")
+@Suite("Data migration from older app names")
 struct DataMigrationTests {
     let fm = FileManager.default
 
@@ -14,7 +14,7 @@ struct DataMigrationTests {
 
     @Test func copiesFilesAndKeepsKeysPrivate() throws {
         let root = tempDir()
-        let old = root.appendingPathComponent("Murmur"), new = root.appendingPathComponent("InstructFlow")
+        let old = root.appendingPathComponent("Murmur"), new = root.appendingPathComponent("Aloud")
         try fm.createDirectory(at: old, withIntermediateDirectories: true)
         try "GROQ_API_KEY=x\n".write(to: old.appendingPathComponent("keys.env"), atomically: true, encoding: .utf8)
         try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: old.appendingPathComponent("keys.env").path)
@@ -30,7 +30,7 @@ struct DataMigrationTests {
 
     @Test func neverOverwritesAnExistingNewFolder() throws {
         let root = tempDir()
-        let old = root.appendingPathComponent("Murmur"), new = root.appendingPathComponent("InstructFlow")
+        let old = root.appendingPathComponent("Murmur"), new = root.appendingPathComponent("Aloud")
         try fm.createDirectory(at: old, withIntermediateDirectories: true)
         try fm.createDirectory(at: new, withIntermediateDirectories: true)
         try "old".write(to: old.appendingPathComponent("keys.env"), atomically: true, encoding: .utf8)
@@ -41,13 +41,13 @@ struct DataMigrationTests {
     @Test func nothingToDoWithoutAnOldFolder() throws {
         let root = tempDir()
         #expect(try DataMigration.migrate(from: root.appendingPathComponent("Murmur"),
-                                          to: root.appendingPathComponent("InstructFlow")).isEmpty)
-        #expect(!fm.fileExists(atPath: root.appendingPathComponent("InstructFlow").path))
+                                          to: root.appendingPathComponent("Aloud")).isEmpty)
+        #expect(!fm.fileExists(atPath: root.appendingPathComponent("Aloud").path))
     }
 
     @Test func skipsSubfolders() throws {
         let root = tempDir()
-        let old = root.appendingPathComponent("Murmur"), new = root.appendingPathComponent("InstructFlow")
+        let old = root.appendingPathComponent("Murmur"), new = root.appendingPathComponent("Aloud")
         try fm.createDirectory(at: old.appendingPathComponent("cache"), withIntermediateDirectories: true)
         try "{}".write(to: old.appendingPathComponent("agent.json"), atomically: true, encoding: .utf8)
         #expect(try DataMigration.migrate(from: old, to: new) == ["agent.json"])

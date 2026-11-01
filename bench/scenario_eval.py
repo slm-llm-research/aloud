@@ -11,7 +11,7 @@ was heard and typed, and scores it against the expected text.
     uv run python scenario_eval.py compare S1 S2 ...            # before/after table of sessions
     uv run python scenario_eval.py selftest                     # checks the metrics on built-in examples
 
-`run` reads the app's capture file (~/Library/Logs/InstructFlow/dictations.jsonl, one line per
+`run` reads the app's capture file (~/Library/Logs/Aloud/dictations.jsonl, one line per
 dictation with what speech-to-text heard and what was typed), so nothing has to be copied by hand.
 
 Metrics (per scenario, then per mode and overall):
@@ -41,7 +41,7 @@ from whisper_normalizer.english import EnglishTextNormalizer
 HERE = Path(__file__).parent
 SCENARIOS = HERE / "scenarios.jsonl"
 RESULTS = HERE / "results"
-CAPTURE = Path.home() / "Library/Logs/InstructFlow/dictations.jsonl"
+CAPTURE = Path.home() / "Library/Logs/Aloud/dictations.jsonl"
 
 _normalizer = EnglishTextNormalizer()
 
@@ -359,7 +359,7 @@ def cmd_report(args):
     clean = [p for p in pairs if "noise" not in p[0]["tags"]]
     noisy = [p for p in pairs if "noise" in p[0]["tags"]]
 
-    md = [f"# InstructFlow scenario eval: {args.session}", "",
+    md = [f"# Aloud scenario eval: {args.session}", "",
           f"{overall['n']} of {len(scenarios)} scenarios. Source: {', '.join(sorted({r.get('source', 'manual') for _, r, _ in pairs}))}. "
           + (" Replay = text-to-speech into live speech-to-text and the app's cleanup code (no mic, no typing into the app). "
              if any(r.get('source', '').startswith('replay') for _, r, _ in pairs) else "")
@@ -421,7 +421,7 @@ CHAT_KEYTERMS = ["lol", "omg", "btw", "idk", "tbh", "brb"]  # as ModeRouter.chat
 
 def dictionary_terms():
     """The plain lines of the app's dictionary, which the app sends to Scribe as keyterms."""
-    p = Path.home() / "Library/Application Support/InstructFlow/dictionary.txt"
+    p = Path.home() / "Library/Application Support/Aloud/dictionary.txt"
     if not p.exists():
         return []
     return [l.strip() for l in p.read_text().splitlines()
@@ -431,7 +431,7 @@ CHAT_APPS = {"net.whatsapp.WhatsApp", "com.tinyspeck.slackmacgap", "com.apple.Mo
 
 def keys():
     env = {}
-    for line in (Path.home() / "Library/Application Support/InstructFlow/keys.env").read_text().splitlines():
+    for line in (Path.home() / "Library/Application Support/Aloud/keys.env").read_text().splitlines():
         if "=" in line and not line.lstrip().startswith("#"):
             k, v = line.split("=", 1)
             env[k.strip()] = v.strip().strip('"')
@@ -493,7 +493,7 @@ def clean_with_app_code(items):
     inp, out = work / "in.jsonl", work / "out.jsonl"
     inp.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
     run_env = dict(os.environ, **{k: v for k, v in env.items() if k in ("GROQ_API_KEY", "ANTHROPIC_API_KEY")},
-                   INSTRUCTFLOW_REPLAY_IN=str(inp), INSTRUCTFLOW_REPLAY_OUT=str(out))
+                   ALOUD_REPLAY_IN=str(inp), ALOUD_REPLAY_OUT=str(out))
     r = subprocess.run(["swift", "test", "--filter", "ScenarioReplay"], cwd=HERE.parent / "app", env=run_env,
                        capture_output=True, text=True)
     if not out.exists():
@@ -567,7 +567,7 @@ def cmd_replay(args):
     inp.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
     print(f"Cleaning {len(items)} transcripts with the app's cleanup chain...")
     run_env = dict(__import__("os").environ, **{k: v for k, v in env.items() if k in ("GROQ_API_KEY", "ANTHROPIC_API_KEY")},
-                   INSTRUCTFLOW_REPLAY_IN=str(inp), INSTRUCTFLOW_REPLAY_OUT=str(out))
+                   ALOUD_REPLAY_IN=str(inp), ALOUD_REPLAY_OUT=str(out))
     r = subprocess.run(["swift", "test", "--filter", "ScenarioReplay"], cwd=HERE.parent / "app", env=run_env,
                        capture_output=True, text=True)
     if not out.exists():

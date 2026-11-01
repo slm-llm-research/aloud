@@ -4,13 +4,14 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { runTask, type AgentDeps, type TaskContext } from "./agent.js";
 import type { ApprovalBroker, ApprovalDecision } from "./approvals.js";
+import { readHistory } from "./history.js";
 
 /**
  * JSON-RPC 2.0 over a Unix socket, one JSON object per line (PLAN.md §8.2). The socket is
  * owner-only (0600), so only your user's processes can submit tasks or approve steps.
  *
  * Requests (app -> agentd): ping, task.submit {utterance, context?}, task.cancel {taskId},
- *   task.cancelAll, approval.respond {stepId, decision}
+ *   task.cancelAll, approval.respond {stepId, decision}, task.history {limit?} -> {tasks}
  * Notifications (agentd -> app): task.started, task.progress, approval.request, task.result, task.error,
  *   and for the timeline: task.plan {steps}, task.step {stepId, title, risk, status, ...},
  *   task.note {text}, task.metrics {inputTokens, outputTokens, turns}
@@ -108,6 +109,10 @@ export class AgentServer {
       }
       case "task.cancelAll":
         return void reply({ cancelled: this.cancelAll() });
+      case "task.history": {
+        const limit = Math.min(200, Math.max(1, Number(p.limit ?? 50) || 50));
+        return void reply({ tasks: readHistory(this.deps!.cfg.auditPath, limit, new Set(this.running.keys())) });
+      }
       case "approval.respond": {
         const decision = p.decision === "approve" ? "approve" : "deny";
         const ok = this.broker!.respond(String(p.stepId ?? ""), decision as ApprovalDecision);

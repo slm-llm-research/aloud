@@ -4,10 +4,10 @@ import Testing
 @testable import STTKit
 
 /// Real-model checks against clips from the M0 benchmark set (bench/data/audio).
-/// Run with: INSTRUCTFLOW_INTEGRATION=1 swift test --filter STTKitTests
+/// Run with: ALOUD_INTEGRATION=1 swift test --filter STTKitTests
 // Serialized: parallel tests would download/load the same model files at once and corrupt them.
 @Suite("Parakeet (integration)", .serialized,
-       .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_INTEGRATION"] == "1"))
+       .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
 struct ParakeetIntegrationTests {
     static let audioDir = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().appendingPathComponent("../../../bench/data/audio").standardized

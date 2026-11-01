@@ -165,7 +165,7 @@ If you'd rather take option B to get to daily use faster, the plan below still a
 9. Slow the release cadence or add an LTS channel so downstream users can pin.
 
 **How "build on rea" maps into the plan:**
-- The new app lives beside rea in `voice-flow/`.
+- The new app lives beside rea in `aloud/`.
 - Its agent daemon reuses rea's contract/effects *design* and can mount rea as an MCP toolset.
 - The improvements above can go upstream as PRs.
 

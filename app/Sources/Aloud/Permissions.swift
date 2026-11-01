@@ -3,7 +3,7 @@ import AVFoundation
 import ApplicationServices
 import CoreGraphics
 
-/// The three macOS permissions InstructFlow needs (PLAN.md §6).
+/// The three macOS permissions Aloud needs (PLAN.md §6).
 enum Permissions {
     struct Status {
         var microphone: Bool

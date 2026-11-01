@@ -273,7 +273,7 @@ public final class Session {
         case .task:
             if let tasks {
                 let accepted = await tasks.submit(task: text, context: context)
-                status = accepted ? .idle : .failed("Agent isn't running (see the InstructFlow menu)")
+                status = accepted ? .idle : .failed("Agent isn't running (see the Aloud menu)")
             } else {
                 status = .failed("Task mode isn't built yet (milestone 6)")
             }

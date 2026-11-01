@@ -59,13 +59,13 @@ struct TaskStoreTests {
     @Test func historyIsCappedButRunningTasksStay() {
         let s = TaskStore()
         s.apply(.started(taskId: "live", utterance: "long job"))
-        for i in 0..<30 {
+        for i in 0..<(TaskStore.historyLimit + 10) {
             s.apply(.started(taskId: "\(i)", utterance: "job \(i)"))
             s.apply(.result(taskId: "\(i)", summary: "ok"))
         }
         #expect(s.tasks.count == TaskStore.historyLimit)
         #expect(s.task("live")?.isActive == true)
-        #expect(s.tasks.first?.id == "29")
+        #expect(s.tasks.first?.id == "\(TaskStore.historyLimit + 9)")
     }
 
     @Test func parsesTimelineEvents() {
@@ -79,5 +79,38 @@ struct TaskStoreTests {
         let card = #"{"method":"approval.request","params":{"taskId":"t","stepId":"s","tool":"run_shell","preview":"$ ls","effects":["execute_process"],"title":"Run ls in app","risk":"high","expiresAt":120000}}"#
         guard case .event(.approval(let req)) = P.parse(Data(card.utf8)) else { Issue.record("not a card"); return }
         #expect(req.title == "Run ls in app" && req.risk == .high && req.expiresAt == Date(timeIntervalSince1970: 120))
+    }
+
+    @Test func historyParsesAndMergesWithoutOverridingLiveTasks() throws {
+        let json = #"""
+        [{"taskId":"live","utterance":"old copy","startedAt":1000,"state":"done","summary":"stale","plan":[],"steps":[],"inputTokens":0,"outputTokens":0},
+         {"taskId":"past","utterance":"tidy downloads","startedAt":500,"endedAt":9500,"state":"done","summary":"Moved 42 files.",
+          "plan":[{"content":"List","status":"completed"}],
+          "steps":[{"stepId":"s","tool":"run_shell","title":"Run ls","risk":"medium","status":"denied","result":"","endedAt":2000}],
+          "inputTokens":1200,"outputTokens":80},
+         {"taskId":"cut","utterance":"half","startedAt":200,"state":"interrupted","summary":"","plan":[],"steps":[],"inputTokens":0,"outputTokens":0}]
+        """#
+        let past = TaskStore.parseHistory(Data(json.utf8))
+        #expect(past.count == 3)
+        #expect(past[1].steps.first?.status == .denied && past[1].steps.first?.risk == .medium)
+        #expect(past[1].plan.first?.status == .completed)
+        #expect(past[1].outputTokens == 80)
+        #expect(past[2].state == .interrupted && past[2].summary.hasPrefix("Interrupted"))
+
+        let s = TaskStore(now: { Date(timeIntervalSince1970: 5) })
+        s.apply(.started(taskId: "live", utterance: "running now"))
+        s.mergeHistory(past)
+        #expect(s.tasks.map(\.id) == ["live", "past", "cut"])
+        #expect(s.task("live")?.heard == "running now")
+        s.mergeHistory(past)
+        #expect(s.tasks.count == 3)
+    }
+
+    @Test func responsesKeepNestedJSON() throws {
+        guard case .response(_, let result, _) = P.parse(Data(#"{"id":4,"result":{"tasks":[{"taskId":"t"}]}}"#.utf8)) else {
+            Issue.record("not a response"); return
+        }
+        let data = try #require(result?["tasks"]?.json)
+        #expect(String(decoding: data, as: UTF8.self) == #"[{"taskId":"t"}]"#)
     }
 }

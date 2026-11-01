@@ -9,9 +9,10 @@ import { AuditLog } from "../src/audit.js";
 import { defaultConfig, type AgentConfig } from "../src/config.js";
 import { AgentServer } from "../src/rpc.js";
 import { ALL_TOOLS, lineDiff } from "../src/tools/index.js";
+import { readHistory } from "../src/history.js";
 
 function setup(answer: (r: ApprovalRequest) => "approve" | "deny" | "ignore" = () => "approve", timeoutMs = 2_000) {
-  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "instructflow-agent-")));
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "aloud-agent-")));
   const cfg: AgentConfig = { ...defaultConfig(), allowedRoots: [root], auditPath: path.join(root, ".audit.jsonl") };
   const requests: ApprovalRequest[] = [];
   const progress: string[] = [];
@@ -73,12 +74,12 @@ describe("gated tools", () => {
   it("find_folders matches spoken spellings of a folder name", async () => {
     const env = setup();
     const { mkdirSync } = await import("node:fs");
-    mkdirSync(path.join(env.root, "Agentic_2026/voice-flow/agentd/src"), { recursive: true });
-    mkdirSync(path.join(env.root, "Agentic_2026/voice-flow/agentd-old"), { recursive: true });
+    mkdirSync(path.join(env.root, "Agentic_2026/aloud/agentd/src"), { recursive: true });
+    mkdirSync(path.join(env.root, "Agentic_2026/aloud/agentd-old"), { recursive: true });
     mkdirSync(path.join(env.root, "Agentic_2026/node_modules/agentd"), { recursive: true });
     for (const spoken of ["Agent D", "agent-d", "AgentD", "agentd"]) {
       const [r] = await run(env, [["find_folders", { name: spoken }]]);
-      expect(r, spoken).toContain(`exact: ${path.join(env.root, "Agentic_2026/voice-flow/agentd")}`);
+      expect(r, spoken).toContain(`exact: ${path.join(env.root, "Agentic_2026/aloud/agentd")}`);
       expect(r, spoken).toContain("similar:");  // agentd-old
       expect(r, spoken).not.toContain("node_modules");
     }
@@ -335,5 +336,35 @@ describe("timeline events (agent UI)", () => {
     expect(results[0]).toMatch(/Plan shown/);
     expect(events).toContainEqual(["task.plan", { taskId: "t1", steps: plan.steps }]);
     expect(env.requests).toHaveLength(0);
+  });
+});
+
+describe("task history (Task Center)", () => {
+  it("rebuilds finished tasks from the audit log, newest first, with steps and plan", async () => {
+    const env = setup((r) => (r.tool === "run_shell" ? "deny" : "approve"));
+    const planner = new ScriptedPlanner([
+      ["update_plan", { steps: [{ content: "Look", status: "completed" }, { content: "Test", status: "inProgress" }] }],
+      ["list_dir", { path: env.root }],
+      ["run_shell", { command: "echo hi", cwd: env.root }],
+    ]);
+    const deps = { cfg: env.cfg, broker: env.broker, audit: env.audit, planner, tools: ALL_TOOLS, progress: () => {} };
+    await runTask({ taskId: "old", utterance: "first" }, { ...deps, planner: new ScriptedPlanner([]) }, new AbortController().signal);
+    await runTask({ taskId: "new", utterance: "second" }, deps, new AbortController().signal);
+    const h = readHistory(env.cfg.auditPath, 10);
+    expect(h.map((t) => t.taskId)).toEqual(["new", "old"]);
+    const t = h[0]!;
+    expect(t.state).toBe("done");
+    expect(t.utterance).toBe("second");
+    expect(t.plan.map((p) => p.content)).toEqual(["Look", "Test"]);
+    expect(t.steps.map((s) => s.status)).toEqual(["done", "denied"]);
+    expect(t.steps[0]!.title).toMatch(/^List /);
+    expect(readHistory(env.cfg.auditPath, 10, new Set(["new"])).map((x) => x.taskId)).toEqual(["old"]);
+  });
+
+  it("a task with no end line is interrupted; a missing log is empty", () => {
+    const env = setup();
+    env.audit.write("task.start", { taskId: "x", utterance: "half" });
+    expect(readHistory(env.cfg.auditPath)[0]!.state).toBe("interrupted");
+    expect(readHistory(path.join(env.root, "nope.jsonl"))).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
-# InstructFlow benchmarks
+# Aloud benchmarks
 
-Measured 2026-10-31 with the scenario eval harness ([`bench/scenario_eval.py`](bench/scenario_eval.py)). Interactive version: [`docs/results/index.html`](docs/results/index.html) (served at https://slm-llm-research.github.io/instructflow/results/). Regenerate everything with `cd bench && uv run python export_results.py`.
+Measured 2026-10-31 with the scenario eval harness ([`bench/scenario_eval.py`](bench/scenario_eval.py)). Interactive version: [`docs/results/index.html`](docs/results/index.html) (served at https://slm-llm-research.github.io/aloud/results/). Regenerate everything with `cd bench && uv run python export_results.py`.
 
 ## Before and after
 
@@ -92,7 +92,7 @@ Pass rate (scenarios scored).
 ## How it was tested
 
 - **Scenarios:** [`bench/scenarios.jsonl`](bench/scenarios.jsonl), 37 lines to speak across Notes, Gmail, WhatsApp, ChatGPT, Claude Code and a shell. They cover self-corrections, negations, numbers, names, slang, stutters, lists, email layout, shell symbols, and five background-noise variants. Each has the expected text and checks.
-- **Real voice:** the author spoke each scenario into the named app with the installed app build. The app records what speech-to-text heard and what it typed (`~/Library/Logs/InstructFlow/dictations.jsonl`), and `scenario_eval.py run` pairs each record with its scenario.
+- **Real voice:** the author spoke each scenario into the named app with the installed app build. The app records what speech-to-text heard and what it typed (`~/Library/Logs/Aloud/dictations.jsonl`), and `scenario_eval.py run` pairs each record with its scenario.
 - **Before/after on identical input:** `scenario_eval.py reclean` runs the current cleanup code over the transcripts speech-to-text produced in the real-voice session, so speech recognition is held fixed.
 - **Synthetic voice:** `scenario_eval.py replay` speaks every scenario with macOS text-to-speech, streams it to live speech-to-text with the app's settings, and runs the app's cleanup code (the `ScenarioReplay` Swift test). It skips only the mic and typing into the app.
 - **Pass:** required phrases present, banned phrases absent, layout right for the app (list, email, single line, Goal/Context/Constraints), every negation and number kept, and the right mode chosen.

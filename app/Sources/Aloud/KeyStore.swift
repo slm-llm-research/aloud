@@ -1,15 +1,15 @@
 import CleanupKit
 import Foundation
 
-/// API keys in a private file: ~/Library/Application Support/InstructFlow/keys.env, readable only by you
+/// API keys in a private file: ~/Library/Application Support/Aloud/keys.env, readable only by you
 /// (mode 0600), like ~/.aws/credentials.
 ///
 /// Why not the Keychain: with a self-signed app, macOS asks for your login password every time a
-/// rebuilt InstructFlow reads a Keychain item, which makes it unusable during development.
+/// rebuilt Aloud reads a Keychain item, which makes it unusable during development.
 enum KeyStore {
     static let names = ["ELEVENLABS_API_KEY", "GROQ_API_KEY", "ANTHROPIC_API_KEY"]
     static let url = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/InstructFlow/keys.env")
+        .appendingPathComponent("Library/Application Support/Aloud/keys.env")
 
     private static func load() -> [String: String] {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [:] }

@@ -52,7 +52,7 @@ public final class EventTap: @unchecked Sendable {
             ready.signal()
             CFRunLoopRun()
         }
-        thread.name = "instructflow.eventtap"
+        thread.name = "aloud.eventtap"
         thread.qualityOfService = .userInteractive
         thread.start()
         self.thread = thread

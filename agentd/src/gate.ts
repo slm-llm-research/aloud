@@ -33,11 +33,11 @@ export async function gatedRun(
 
   const effects = tool.effects(input as never, cfg);
   const preview = tool.preview(input as never, cfg);
-  const base = { taskId, tool: tool.name, input, effects };
   const stepId = randomUUID();
   const title = tool.title?.(input as never, cfg) ?? oneLine(preview);
   const risk = riskOf(effects);
   const startedAt = Date.now();
+  const base = { taskId, stepId, tool: tool.name, title, risk, startedAt, input, effects };
   const step = (status: StepStatus, extra: Record<string, unknown> = {}) =>
     deps.emit?.("task.step", { taskId, stepId, tool: tool.name, title, effects, risk, status, startedAt, ...extra });
 
@@ -48,7 +48,7 @@ export async function gatedRun(
     audit.write("step.blocked", { ...base, reason: decision.reason });
     progress(`Blocked: ${decision.reason}`);
     step("blocked", { endedAt: Date.now(), result: decision.reason });
-    return `BLOCKED by InstructFlow's safety policy: ${decision.reason}. Do not retry or work around this; tell the user what you could not do.`;
+    return `BLOCKED by Aloud's safety policy: ${decision.reason}. Do not retry or work around this; tell the user what you could not do.`;
   }
 
   if (decision.kind === "confirm") {
@@ -67,12 +67,12 @@ export async function gatedRun(
   step("running");
   try {
     const result = await tool.run(input as never, { cfg, signal });
-    audit.write("step.done", { ...base, auto: decision.kind === "auto", result: result.slice(0, 2_000) });
+    audit.write("step.done", { ...base, endedAt: Date.now(), auto: decision.kind === "auto", result: result.slice(0, 2_000) });
     step("done", { endedAt: Date.now(), result: oneLine(result, 120) });
     return result;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    audit.write("step.error", { ...base, error: msg });
+    audit.write("step.error", { ...base, endedAt: Date.now(), error: msg });
     step("error", { endedAt: Date.now(), result: oneLine(msg, 120) });
     return `Error: ${msg}`;
   }

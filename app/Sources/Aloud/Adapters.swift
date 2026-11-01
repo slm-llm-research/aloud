@@ -3,10 +3,10 @@ import AudioKit
 import CleanupKit
 import Foundation
 import InsertKit
-import InstructFlowCore
+import AloudCore
 import STTKit
 
-// Connect the real implementations to InstructFlowCore's protocols.
+// Connect the real implementations to AloudCore's protocols.
 
 extension AudioRecorder: AudioCapturing {}
 

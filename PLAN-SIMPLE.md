@@ -1,6 +1,6 @@
-# InstructFlow: The Simple Version
+# Aloud: The Simple Version
 
-*InstructFlow is a placeholder name. The full plan with all the details is in [PLAN.md](PLAN.md).*
+*Aloud is a placeholder name. The full plan with all the details is in [PLAN.md](PLAN.md).*
 
 ## What we're building
 
@@ -46,7 +46,7 @@ Fn stays with Wispr Flow. All of these keys can be changed in settings.
 
 ```
                          ┌───────────────────────────────────────────────┐
-   YOU                   │            MURMUR APP (on your Mac)           │
+   YOU                   │            ALOUD APP (on your Mac)            │
                          │                                               │
   hold Right Shift ─────►│  1. KEY LISTENER                              │
                          │     hold = talk · double-tap = latch          │

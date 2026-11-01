@@ -6,12 +6,12 @@ import { loadAnthropicKey, loadConfig } from "./config.js";
 import { AgentServer } from "./rpc.js";
 import { ALL_TOOLS } from "./tools/index.js";
 
-// MURMUR_AGENT_CONFIG is the pre-rename name, still honoured.
-const configPath = process.env.INSTRUCTFLOW_AGENT_CONFIG ?? process.env.MURMUR_AGENT_CONFIG;
+// INSTRUCTFLOW_AGENT_CONFIG and MURMUR_AGENT_CONFIG are the pre-rename names, still honoured.
+const configPath = process.env.ALOUD_AGENT_CONFIG ?? process.env.INSTRUCTFLOW_AGENT_CONFIG ?? process.env.MURMUR_AGENT_CONFIG;
 const cfg = configPath ? loadConfig(configPath) : loadConfig();
 const apiKey = loadAnthropicKey();
 if (!apiKey) {
-  console.error("agentd: no ANTHROPIC_API_KEY (environment or ~/Library/Application Support/InstructFlow/keys.env)");
+  console.error("agentd: no ANTHROPIC_API_KEY (environment or ~/Library/Application Support/Aloud/keys.env)");
   process.exit(2);
 }
 
@@ -40,6 +40,6 @@ const shutdown = async () => {
 };
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
-// The InstructFlow app owns us: if it goes away (stdin closes), exit too.
+// The Aloud app owns us: if it goes away (stdin closes), exit too.
 process.stdin.on("end", shutdown);
 process.stdin.resume();

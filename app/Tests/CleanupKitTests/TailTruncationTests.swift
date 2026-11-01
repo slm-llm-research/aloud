@@ -22,7 +22,7 @@ struct CleanupTailTests {
 
     @Test func guardrailRejectsADroppedEnding() {
         // Long enough that losing three words stays under the recall threshold.
-        let body = "Refer to the reports in the voice flow project, read the research notes on the island design, "
+        let body = "Refer to the reports in the Aloud project, read the research notes on the island design, "
             + "check the approval card layout, compare the menu bar options, review the event model proposal, "
             + "estimate the effort for the streaming planner, list the risks for the notch placement, "
             + "and then implement the changes"

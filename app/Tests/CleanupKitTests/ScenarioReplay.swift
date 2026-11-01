@@ -4,8 +4,8 @@ import Testing
 
 /// Runs the app's cleanup (same chain, timeouts and dictionary as the app) over transcripts prepared by
 /// `bench/scenario_eval.py replay`, and writes what would have been typed. Not a pass/fail test: the
-/// harness scores the output. Input/output: JSON lines given by INSTRUCTFLOW_REPLAY_IN / _OUT.
-@Suite("ScenarioReplay", .enabled(if: ProcessInfo.processInfo.environment["INSTRUCTFLOW_REPLAY_IN"] != nil))
+/// harness scores the output. Input/output: JSON lines given by ALOUD_REPLAY_IN / _OUT.
+@Suite("ScenarioReplay", .enabled(if: ProcessInfo.processInfo.environment["ALOUD_REPLAY_IN"] != nil))
 struct ScenarioReplay {
     static let env = ProcessInfo.processInfo.environment
 
@@ -14,11 +14,11 @@ struct ScenarioReplay {
         if let k = Self.env["GROQ_API_KEY"] { chain.append(.init(OpenAICompatibleLLM.groq(apiKey: k), timeout: 1.5)) }
         if let k = Self.env["ANTHROPIC_API_KEY"] { chain.append(.init(AnthropicLLM(apiKey: k), timeout: 2.5)) }
         let dictURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/InstructFlow/dictionary.txt")
+            .appendingPathComponent("Library/Application Support/Aloud/dictionary.txt")
         let dict = PersonalDictionary.parse((try? String(contentsOf: dictURL, encoding: .utf8)) ?? "")
         let cleaner = Cleaner(chain: chain, dictionary: dict)
 
-        let input = try String(contentsOfFile: Self.env["INSTRUCTFLOW_REPLAY_IN"]!, encoding: .utf8)
+        let input = try String(contentsOfFile: Self.env["ALOUD_REPLAY_IN"]!, encoding: .utf8)
         var out = ""
         let clock = ContinuousClock()
         for line in input.split(separator: "\n") where !line.isEmpty {
@@ -37,6 +37,6 @@ struct ScenarioReplay {
             let data = try JSONSerialization.data(withJSONObject: row, options: [.sortedKeys])
             out += String(decoding: data, as: UTF8.self) + "\n"
         }
-        try out.write(toFile: Self.env["INSTRUCTFLOW_REPLAY_OUT"]!, atomically: true, encoding: .utf8)
+        try out.write(toFile: Self.env["ALOUD_REPLAY_OUT"]!, atomically: true, encoding: .utf8)
     }
 }
