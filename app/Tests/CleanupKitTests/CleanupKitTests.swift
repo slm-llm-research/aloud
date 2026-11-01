@@ -433,4 +433,65 @@ struct PromptOrFreeSpeechLiveTests {
     @Test(.enabled(if: env["ANTHROPIC_API_KEY"] != nil)) func haiku() async {
         await Self.check(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
     }
+
+    /// The demo's opening line through the app's own chain and timeouts, three times.
+    @Test(.enabled(if: env["GROQ_API_KEY"] != nil && env["ANTHROPIC_API_KEY"] != nil)) func demoOpeningLine() async {
+        let c = Cleaner(chain: [.init(OpenAICompatibleLLM.groq(apiKey: Self.env["GROQ_API_KEY"]!), timeout: 1.5),
+                                .init(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!), timeout: 2.5)],
+                        repair: .always, repairTimeout: 1.2)
+        for _ in 0..<3 {
+            let r = await c.clean(Self.cases[2].0, context: Self.claude)
+            #expect(r.text.hasPrefix("Goal:"), "\(r.text) [\(r.via) \(r.notes)]")
+            for m in ["five attempts per minute", "signup flow", "tests pass"] {
+                #expect(r.text.lowercased().contains(m) || r.text.contains("5 attempts per minute"), "missing \(m): \(r.text)")
+            }
+        }
+    }
+}
+
+/// The model chooses sentences or a list from the content, in each kind of app.
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter LayoutChoiceLive
+@Suite("LayoutChoiceLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
+struct LayoutChoiceLiveTests {
+    static let env = ProcessInfo.processInfo.environment
+    static let notes = AppContext(bundleID: "com.apple.Notes", appName: "Notes")
+    static let whatsapp = AppContext(bundleID: "net.whatsapp.WhatsApp", appName: "WhatsApp")
+    static let mail = AppContext(bundleID: "com.apple.mail", appName: "Mail")
+    static let claude = AppContext(bundleID: "com.anthropic.claudefordesktop", appName: "Claude")
+
+    /// (heard, app, list expected? (nil: either is fine), words that must survive)
+    static let cases: [(String, AppContext, Bool?, [String])] = [
+        ("things to pack for the trip, passport, phone charger, sunscreen, hiking boots and a rain jacket", notes, true,
+         ["passport", "charger", "sunscreen", "hiking boots", "rain jacket"]),
+        // Three short steps in one sentence: a numbered list or the sentence are both reasonable.
+        ("to set it up, first install node, then run npm install, and finally start the server with npm start", notes, nil,
+         ["install node", "npm install", "start the server"]),
+        ("I think the launch went well, the docs were ready, the team was happy and the first customers liked it", notes, false,
+         ["launch went well", "customers liked it"]),
+        ("can you pick up eggs, milk and bread on your way home", whatsapp, false, ["eggs", "milk", "bread"]),
+        ("hey are we still on for dinner tonight lol, let's do seven no wait eight", whatsapp, false, ["lol", "8"]),
+        ("Hey Sarah. Me and my wife are really interested in the property. Can we come down this evening to have a look? Thanks, Shekhar.",
+         mail, false, ["interested in the property", "this evening"]),
+        ("um what's the difference between a process and a thread", claude, false, ["process", "thread"]),
+    ]
+
+    static func check(_ llm: CleanupLLM) async {
+        let c = Cleaner(chain: [.init(llm, timeout: 8)])
+        for (heard, ctx, list, must) in cases {
+            let r = await c.clean(heard, context: ctx)
+            let bullets = r.text.components(separatedBy: "\n").filter {
+                $0.hasPrefix("- ") || $0.range(of: "^\\d+[.)] ", options: .regularExpression) != nil
+            }.count
+            if let list { #expect((bullets >= 3) == list, "\(llm.name) \(ctx.appName ?? ""): \(heard.prefix(50)) -> \(r.text) [\(r.via) \(r.notes)]") }
+            for m in must { #expect(r.text.lowercased().contains(m.lowercased()), "\(llm.name) missing \(m): \(r.text)") }
+        }
+    }
+
+    @Test(.enabled(if: env["GROQ_API_KEY"] != nil)) func groq() async {
+        await Self.check(OpenAICompatibleLLM.groq(apiKey: Self.env["GROQ_API_KEY"]!))
+    }
+
+    @Test(.enabled(if: env["ANTHROPIC_API_KEY"] != nil)) func haiku() async {
+        await Self.check(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
+    }
 }

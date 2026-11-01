@@ -5,80 +5,64 @@
 Start with the product working within the first 5 seconds: no slides, logo, intro music or "Hi, my name is".
 Say one sentence, then go straight to the screen:
 
-> "Aloud lets me talk to my coding agents. What I say lands as a clean prompt in my own words, and when
-> I ask my Mac to do something, it shows every step and asks before anything risky."
+> "Aloud lets me talk to my coding agents. I speak, and it lands as a clean prompt in my own words, or it
+> does the task itself, showing every step and asking before anything risky."
 
-## Structure (about 2 minutes)
+## Structure (about 2 minutes 15 seconds)
 
-1. **0:00–0:10, the hook.** The opening line, then in Claude Code: "so I want to add rate limiting to
-   the login endpoint um it should allow five attempts per minute per IP and don't change the signup flow
-   and it's done when the tests pass". It lands as Goal / Context / Constraints, in your own sentences.
-2. **0:10–0:40, voice for coding.**
-   - Claude Code: "rename the function validate email in auth dot ts"
-   - Codex / Cursor: "in the user service add a function that validates the email field and don't touch
-     the signup form"
-   - Terminal: "git checkout dash b fix slash auth"
-3. **0:40–1:20, the agent (Right Shift + Right ⌘).**
-   - "Run the tests in agent D": the approval card shows the exact command before anything runs.
-   - "In aloud, make the Task Center remember its last filter": handed to Claude Code; then open the
-     Task Center to show the timeline.
-4. **1:20–1:40, beyond code.** "Tidy my desktop", then "Undo that". Or in WhatsApp: "hey are we still on
-   for dinner tonight lol, let's do seven no wait eight".
-5. **1:40–1:50, why trust it.** "Delete everything on my desktop" is refused. Then one sentence each on
-   the published evals (numbers from BENCHMARKS.md), swappable models and the on-device fallback.
-6. **Last 10 seconds.** What you'll build next and why it matters. Skip "thank you for watching".
+1. **0:00–0:20, the hook.** The opening line, then a request dictated into Claude Code lands as a prompt
+   (Goal / Constraints / Done when) without saying "as a prompt".
+2. **0:20–0:35, free speech.** Thinking aloud in Claude Code stays as your sentences.
+3. **0:35–0:50, Claude Desktop.** A question is cleaned up, never answered.
+4. **0:50–1:20, the agent.** "Run the tests in agent D": approval card, result, Task Center.
+5. **1:20–1:50, everyday apps.** WhatsApp keeps your tone and corrections; Mail formats the message.
+6. **1:50–2:10, context-aware.** One line on how each app gets the right format.
+7. **Last 10 seconds.** What's next. Skip "thank you for watching".
 
 ## Word-for-word script
 
 **0:00 · Opening**
-**Say:** "Aloud lets me talk to my coding agents. What I say lands as a clean prompt in my own words, and when I ask my Mac to do something, it shows every step and asks before anything risky."
+**Say:** "Aloud lets me talk to my coding agents. I speak, and it lands as a clean prompt in my own words, or it does the task itself, showing every step and asking before anything risky."
 
 **Dictate in Claude Code** (hold Right Shift):
-"so I want to add rate limiting to the login endpoint um it should allow five attempts per minute per IP and don't change the signup flow and it's done when the tests pass"
+"add rate limiting to the login endpoint it should allow five attempts per minute per IP don't change the signup flow and it's done when the tests pass"
 
-**Say:** "I rambled, and it came out as a structured prompt, but every sentence is still mine."
+**Say:** "I didn't tell it to make a prompt. It heard a request, so it laid it out as a goal, constraints and when it's done, and every line is still my words."
 
-**0:10 · Voice for coding**
+**0:20 · Free speech in Claude Code**
 **Dictate in Claude Code:**
-"rename the function validate email in auth dot ts"
+"um I'm not sure why the login test is flaky I think it might be the mock clock but maybe it's the retry logic can you take a look"
 
-**Dictate in Codex:**
-"in the user service add a function that validates the email field and don't touch the signup form"
+**Say:** "When I'm just thinking aloud, it knows that too. It stays the way I said it. The ums are gone, nothing is rewritten."
 
-**Dictate in Terminal:**
-"git checkout dash b fix slash auth"
+**0:35 · Claude Desktop**
+**Dictate in Claude Desktop:**
+"um what's the difference between a process and a thread"
 
-**Say:** "Other tools rewrite what you said. Aloud keeps your words and knows where you're typing: a prompt in Claude Code, code names in Codex, a real command in the terminal."
+**Say:** "In a chat app it cleans up my question. It never answers it for me."
 
-**0:40 · The agent**
+**0:50 · The agent**
 **Agent** (hold Right Shift + Right ⌘):
 "Run the tests in agent D"
 
-**Say:** "Before anything runs, it shows me the exact command. I approve it."
+**Say:** "I said 'agent D', and it found the agentd folder. Before anything runs, it shows me the exact command. I approve, and here's the result, with every step logged in the Task Center."
 
-**Agent:**
-"In aloud, make the Task Center remember its last filter"
+**1:20 · WhatsApp**
+**Dictate in WhatsApp:**
+"hey are we still on for dinner tonight lol, let's do seven no wait eight"
 
-**Say:** "That task just went to Claude Code by voice. Here's the Task Center: every step, every result, all logged."
+**Say:** "In chat it keeps my tone, and when I correct myself, it applies the correction."
 
-**1:20 · Beyond code**
-**Agent:**
-"Tidy my desktop"
+**1:35 · Email**
+**Dictate in Mail:**
+"hi sarah comma thanks for the quick turnaround on the deck um I reviewed it and I think we should move the pricing slide before the demo let me know if Thursday works best regards Shekhar"
 
-**Say:** "One approval for the whole batch. Nothing is overwritten."
+**Say:** "In email, my greeting and sign-off go on their own lines. Nothing added."
 
-**Agent:**
-"Undo that"
+**1:50 · Context-aware**
+**Say:** "Same voice, different results, because Aloud knows where I'm typing and what I mean. In Claude Code, Codex or Cursor it turns requests into prompts and keeps code names exact. In the terminal, 'dash b' becomes a real flag. In chat it keeps my tone, in email it formats the message, and when I dictate a list, it becomes a list. It never drops a 'not' or a number, it fixes words that background noise garbled, it learns my names from a personal dictionary, and if the network drops, it keeps working on-device."
 
-**Say:** "And it's all back."
-
-**1:40 · Trust**
-**Agent:**
-"Delete everything on my desktop"
-
-**Say:** "It refuses. Deleting is never allowed by voice. We publish our accuracy evals, you can swap the models, and it keeps working on-device when the network drops."
-
-**1:50 · Close**
+**2:10 · Close**
 **Say:** "Next: approving by voice, and watching Claude Code's progress live, so you can run your coding agents without touching the keyboard. That's Aloud."
 
 ## Before you start
@@ -94,7 +78,7 @@ Say one sentence, then go straight to the screen:
 
 **Claude Code CLI**
 - "so I want to add rate limiting to the login endpoint um it should allow five attempts per minute per IP and don't change the signup flow and it's done when the tests pass"
-- "add retry logic to the upload function as a prompt"
+- "add retry logic to the upload function and keep the existing timeout, it's done when the upload tests pass"
 - "rename the function validate email in auth dot ts"
 
 **Codex / Cursor**
@@ -133,6 +117,7 @@ Say one sentence, then go straight to the screen:
 
 **Notes / Reminders**
 - "grocery list eggs milk spinach no wait kale and coffee"
+- "things to pack for the trip, passport, phone charger, sunscreen, hiking boots and a rain jacket"
 
 **Agent: Safety**
 - "Delete everything on my desktop"

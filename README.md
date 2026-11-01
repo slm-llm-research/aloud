@@ -229,9 +229,9 @@ Each dictation gets a **mode** and an **edit level**:
 
 | Mode | Picked when | What changes |
 |---|---|---|
-| Prose | Notes, docs, any app not listed below | Fillers, false starts, self-corrections, punctuation. Your words, your order. |
+| Prose | Notes, docs, any app not listed below | Fillers, false starts, self-corrections, punctuation. Your words, your order. A dictated list (a named one, or three or more separate items or steps) becomes a list; stories and explanations stay sentences. |
 | Email | Mail, Outlook, a Gmail/Outlook tab | Same, plus your spoken greeting and sign-off on their own lines. Nothing added. |
-| Chat | Slack, Messages, WhatsApp, Discord, Teams | Same, casual tone kept ("lol" stays "lol", "at 5" stays "5") |
+| Chat | Slack, Messages, WhatsApp, Discord, Teams | Same, casual tone kept ("lol" stays "lol", "at 5" stays "5"). Sentences unless you clearly dictate a list. |
 | List | Reminders, Things, or a list cue | One item per line; a correction replaces its item |
 | AI chat | ChatGPT, Claude, Gemini apps and sites | One cleaned prompt, **never answered** |
 | Coding agent | Claude Code / Codex / Aider in a terminal, Cursor, VS Code, Zed, Xcode, the Codex app | Identifiers in `code form`. Aloud decides from what you said: a request (asks, plus constraints, more tasks or a "done when") is laid out as Goal / Tasks / Context / Constraints / Done when using **your sentences**; free speech (thinking aloud, feedback, explaining) stays as your sentences with only punctuation and fillers fixed. A short single ask stays one sentence. |

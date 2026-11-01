@@ -583,3 +583,36 @@ struct PromptOrFreeSpeechTests {
         #expect(r.text == "Grocery list:\n- Eggs\n- Bacon\n- Bread")
     }
 }
+
+@Suite("List or sentences in other apps")
+struct LayoutChoiceTests {
+    @Test func itemsSendTheTextToTheModel() {
+        #expect(Prepass.looksEnumerated("Passport, charger, sunscreen and boots."))
+        #expect(Prepass.looksEnumerated("First install node, then run npm install, and finally start the server."))
+        #expect(!Prepass.looksEnumerated("Can you grab milk and bread on your way home?"))
+        #expect(Prepass.run("Passport, charger, sunscreen and boots.").needsLLM)
+    }
+
+    /// A list chosen in Notes is checked with the structure rules (it drops "and"), and shaped.
+    @Test func aListChosenInNotesIsAccepted() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>Things to pack:\n- passport\n- charger\n- sunscreen\n- hiking boots</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)])
+            .clean("Things to pack, passport, charger, sunscreen and hiking boots.", context: AppContext(bundleID: "com.apple.Notes"))
+        #expect(r.via == "groq", "\(r.notes)")
+        #expect(r.restructured)
+        #expect(r.text == "Things to pack:\n- Passport\n- Charger\n- Sunscreen\n- Hiking boots")
+    }
+}
+
+@Suite("Goal with several asks")
+struct GoalAsksTests {
+    @Test func severalAsksInTheGoalBecomeTasks() {
+        #expect(OutputHygiene.splitGoalAsks("Goal: Scan the entire allowed code base, add more linting tasks, and run the tests.\nConstraints: Don't touch the agent folder.\nDone when: CI is green.")
+                == "Goal: Scan the entire allowed code base.\nTasks:\n- Add more linting tasks.\n- Run the tests.\nConstraints: Don't touch the agent folder.\nDone when: CI is green.")
+        // One ask, or a Tasks section already there: unchanged.
+        let one = "Goal: Fix the redirect in the login handler.\nConstraints: Don't touch the signup form."
+        #expect(OutputHygiene.splitGoalAsks(one) == one)
+        let has = "Goal: Check the service, add a lint step.\nTasks:\n- Scan imports."
+        #expect(OutputHygiene.splitGoalAsks(has) == has)
+    }
+}

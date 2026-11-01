@@ -68,7 +68,8 @@ public enum OutputHygiene {
             while t.hasSuffix(".") && !t.hasSuffix("..") { t.removeLast() }
             t = commandCase(t)
         }
-        if mode == .list { t = listShape(t) }
+        // A list the model chose in notes, chat or an AI prompt gets the same title and item shaping.
+        if mode == .list || ([.prose, .chat, .aiChat].contains(mode) && hasBulletLines(t)) { t = listShape(t) }
         if mode == .email { t = emailShape(t) }
         if mode == .chat {
             // Speech-to-text writes "at 5" as "at 5:00"; a chat message keeps it as said.
@@ -77,6 +78,13 @@ public enum OutputHygiene {
         }
         t = t.replacingOccurrences(of: "[ \\t]+\\n", with: "\n", options: .regularExpression)
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func hasBulletLines(_ s: String) -> Bool {
+        s.components(separatedBy: "\n").filter {
+            let l = $0.trimmingCharacters(in: .whitespaces)
+            return l.hasPrefix("- ") || l.hasPrefix("* ") || l.hasPrefix("• ")
+        }.count >= 2
     }
 
     /// List mode, when the model wrote one sentence instead of a list: "Eggs, 2 litres of milk and
@@ -203,6 +211,29 @@ public enum OutputHygiene {
             last = whole.upperBound
         }
         return out + s[last...]
+    }
+
+    /// A laid-out prompt whose Goal line holds several comma-separated asks and no Tasks section
+    /// ("Goal: Scan the code base, add linting, and run the tests."): the first ask stays the goal,
+    /// the rest become Tasks bullets. Nothing is reworded.
+    public static func splitGoalAsks(_ s: String) -> String {
+        var lines = s.components(separatedBy: "\n")
+        guard !lines.contains(where: { $0.lowercased().hasPrefix("tasks:") }),
+              let gi = lines.firstIndex(where: { $0.hasPrefix("Goal: ") }) else { return s }
+        let goal = String(lines[gi].dropFirst("Goal: ".count))
+        let verbs = "make|fix|add|write|create|build|run|check|update|remove|change|refactor|explain|find|implement|"
+            + "test|push|open|review|move|rename|scan|lint|clean|set up|deploy|migrate|document|look at|figure out"
+        let split = goal.replacingOccurrences(of: ",\\s+(?:and\\s+)?(?:then\\s+)?((?i:\(verbs))\\b)", with: "\u{1F}$1",
+                                              options: .regularExpression)
+        let parts = split.components(separatedBy: "\u{1F}").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        guard parts.count >= 2 else { return s }
+        let sentence = { (p: String) -> String in
+            let t = p.prefix(1).uppercased() + p.dropFirst()
+            return ".!?".contains(t.last ?? " ") ? t : t + "."
+        }
+        lines[gi] = "Goal: " + sentence(parts[0])
+        lines.insert("Tasks:\n" + parts.dropFirst().map { "- " + sentence($0) }.joined(separator: "\n"), at: gi + 1)
+        return lines.joined(separator: "\n")
     }
 
     /// "... as a prompt" when the model didn't lay it out: the speaker's own sentences sorted under

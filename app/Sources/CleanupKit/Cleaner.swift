@@ -135,7 +135,12 @@ public struct Cleaner: Sendable {
                 // stricter word checks; the looser structure checks are only for a laid-out prompt or list.
                 let checkLevel: EditLevel = mayStructure && !route.forceStructure && mode == .codingAgent && !Self.looksStructured(out)
                     ? .light : level
-                var verdict = Guardrail.check(input: modelInput, output: out, level: checkLevel, terms: terms, outside: outside)
+                // The model may lay out prose, chat, email or AI-chat text as a list: check that with the
+                // structure rules (a list drops "and", "I need" ...); sentences keep the stricter ones.
+                let listChosen = [.prose, .chat, .email, .aiChat].contains(mode) && Self.looksStructured(out)
+                    && !Self.looksStructured(modelInput)
+                var verdict = Guardrail.check(input: modelInput, output: out, level: listChosen ? .structure : checkLevel,
+                                              terms: terms, outside: outside)
                 // A list (by app or by cue) that came back as a paragraph: the next model may do better,
                 // and the fallback reshapes it without the model.
                 if verdict == .accept, mode == .list, !Self.looksStructured(out) { verdict = .reject("not a list") }
@@ -151,6 +156,7 @@ public struct Cleaner: Sendable {
                     if route.forceStructure, mode == .codingAgent, !Self.looksStructured(out) {
                         out = OutputHygiene.promptShape(out)
                     }
+                    if mode == .codingAgent, Self.looksStructured(out) { out = OutputHygiene.splitGoalAsks(out) }
                     // A clear request kept as sentences (the faster model often does): lay out the
                     // model's own sentences. Free speech doesn't open as a request, so it isn't touched.
                     if mayStructure, !route.forceStructure, mode == .codingAgent, !Self.looksStructured(out),
@@ -172,8 +178,10 @@ public struct Cleaner: Sendable {
                 notes.append("\(step.llm.name) failed: \(error)")
             }
         }
-        // "... as a prompt" still gets its layout when every model failed or was rejected.
-        let shaped = route.forceStructure && mode == .codingAgent ? OutputHygiene.promptShape(fallback) : fallback
+        // "... as a prompt", or a clear request, still gets its layout when every model failed or was rejected.
+        let shapeFallback = mode == .codingAgent
+            && (route.forceStructure || (mayStructure && Self.looksLikeInstructions(fixed)))
+        let shaped = shapeFallback ? OutputHygiene.promptShape(fallback) : fallback
         return Result(text: shaped, via: "fallback", notes: notes, restructured: shaped != fallback, profile: profile, mode: mode)
     }
 
@@ -239,6 +247,10 @@ public enum Prompts {
     - Never drop or flip negations, numbers, names, units or hedges ("I think", "maybe").
     - Keep "actually", "like" etc. when they carry meaning rather than correct or fill.
 
+    Layout: keep the speaker's sentences and paragraphs unless the content itself is a list (or the mode block below says otherwise).
+    - Use a list (one "- " line per item) only when the content is a list: the speaker names one ("grocery list", "to-do list", "things to pack", "the steps are"), or dictates three or more separate, parallel items or steps meant to be scanned (things to buy or bring, tasks, steps in order). A spoken list name goes first as a title line ending with a colon. Keep each item's own words. Number the items ("1. ") only for steps in order.
+    - Keep sentences for stories, opinions, explanations, questions, and a short series inside a sentence ("we had eggs, toast and coffee", "can you grab milk and bread on your way home").
+
     Write the edited text inside <edited></edited> tags and nothing else: no preamble, no notes.
 
     Examples:
@@ -262,19 +274,19 @@ public enum Prompts {
         case .prose:
             return """
             <mode name="prose">
-            Free-form writing. Keep paragraphs as spoken; start a new paragraph only on a clear topic shift. Keep the speaker's voice, tone and tangents.
+            Free-form writing (notes, documents). Keep paragraphs as spoken; start a new paragraph only on a clear topic shift. Keep the speaker's voice, tone and tangents. Follow the layout rule: a list when the content is one.
             </mode>
             """
         case .email:
             return """
             <mode name="email">
-            An email. Put a spoken greeting and a spoken sign-off on their own lines, with paragraphs in between. Only if they were spoken: never add a greeting, sign-off or subject.
+            An email. Put a spoken greeting and a spoken sign-off on their own lines, with paragraphs in between. Only if they were spoken: never add a greeting, sign-off or subject. Inside the body, a list is fine when the layout rule calls for one (several separate things to bring, do or check).
             </mode>
             """
         case .chat:
             return """
             <mode name="chat">
-            A chat message. One short block, no greeting or sign-off unless spoken. Keep the speaker's tone, slang and casual style.
+            A chat message. One short block, no greeting or sign-off unless spoken. Keep the speaker's tone, slang and casual style. Prefer sentences: a list only when the speaker clearly dictates one (a named list, or several separate items to remember).
             </mode>
             """
         case .list:
@@ -286,7 +298,7 @@ public enum Prompts {
         case .aiChat:
             return """
             <mode name="ai-chat">
-            A prompt for an AI chat app. Keep it as one prompt in the speaker's words; keep questions as questions. Never answer it.
+            A prompt for an AI chat app. Keep it as one prompt in the speaker's words; keep questions as questions. Never answer it. A list only for points the speaker enumerated as separate items.
             </mode>
             """
         case .terminal:
@@ -299,7 +311,7 @@ public enum Prompts {
             let organize: String
             if forced {
                 organize = """
-                The speaker asked for a prompt: arrange their own sentences under these labels, each label on its own line, omitting any label they gave no material for:
+                The speaker asked for a prompt: arrange their own sentences under these labels, each label on its own line, omitting any label they gave no material for. This replaces the general layout rule: every separate ask goes on its own "- " line under Tasks, never several asks in one Goal line.
                 Goal: <the main ask, or their question>
                 Tasks: <only when they asked for two or more things: one "- " line per thing, in their words>
                 Context: <what they observed: files, errors, reasons>
@@ -320,7 +332,7 @@ public enum Prompts {
                 FREE SPEECH: thinking aloud, explaining, describing what happened, giving feedback, reporting results, discussing options, or asking a how/why question. Keep it as their sentences and paragraphs, exactly like plain cleanup: fix punctuation and grammar slips, remove fillers, keep every other word. No labels, no lists. A single "can you look into it" at the end of a story is still free speech.
                 INSTRUCTIONS: the main purpose is to get the agent to do work, with two or more of: separate tasks, background (files, errors, reasons), constraints (don't / only / keep / make sure), or a completion check. Lay it out as a prompt. Requests phrased as "I want you to ...", "can you ..." or as commands are INSTRUCTIONS when they add a constraint, another task or a check. A single short ask ("fix the login redirect") stays one clean sentence.
                 Only when it is genuinely unclear, prefer FREE SPEECH.
-                For INSTRUCTIONS, arrange the speaker's own sentences under these labels, each label on its own line, omitting any label they gave no material for:
+                For INSTRUCTIONS, arrange the speaker's own sentences under these labels, each label on its own line, omitting any label they gave no material for (this replaces the general layout rule; two or more separate asks go on their own "- " lines under Tasks):
                 Goal: <the main ask>
                 Tasks: <only for two or more separate asks: one "- " line per thing, in their words>
                 Context: <what they observed: files, errors, reasons>
