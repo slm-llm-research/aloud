@@ -7,8 +7,8 @@ to say, what the audience sees, and what to set up beforehand.
 
 - **Allowed folders** (menu bar ▸ Agent Settings…): your projects folder and `~/Desktop`. Add
   `~/Downloads` too for beat 5.
-- **Desktop access:** the first time the agent looks at the Desktop, macOS asks whether Aloud may access
-  your Desktop folder. Do one dry run beforehand so the prompt doesn't appear on camera.
+- **Desktop access:** in a dry run, macOS asks two things once: whether Aloud may access your Desktop
+  folder, and whether Aloud may control Finder (for sorting icons). Allow both before you record.
 - **A messy Desktop:** a few screenshots, a PDF or two, a zip, a .dmg, some loose notes. Real clutter
   reads better than a staged one.
 - **Hide distractions:** turn on Do Not Disturb and close other notification sources.
@@ -26,10 +26,11 @@ request ending in "… as a prompt". It arrives laid out as Goal / Context / Con
 Aloud knows where you're typing.
 
 **3. Talk to your computer: tidy the Desktop (45 s).** Hold Right Shift, add Right ⌘ (the waveform
-turns orange), and say "organize my desktop". The island drops from the notch, shows the plan, lists
-the Desktop, then turns into one approval card: "Organize 14 items in Desktop", with every move grouped
-by destination folder and the new folders marked. Click Approve and the Desktop rearranges itself. Then
-say "undo that": one more card and everything goes back.
+turns orange), and say "tidy my desktop". The island drops from the notch, shows the plan, lists
+the Desktop, then turns into one approval card: "Organize 14 items and 3 empty folders in Desktop",
+with every move grouped by destination folder, the new folders marked and the empty leftovers listed.
+Click Approve: the files move, then the icons sort themselves by kind. Then say "undo that": one more
+card and everything goes back. ("Sort my desktop icons by date" works on its own too.)
 
 **4. Hand code to an agent by voice (45 s).** Right Shift + Right ⌘: "In aloud, run the tests in
 agentd." The island shows the exact command and a medium-risk badge. Approve, and the summary comes
@@ -60,6 +61,4 @@ Ideas that would need new work (good roadmap slides, not live demos yet):
   sending kept click-only.
 - **Voice approvals** ("yes, do it") so the whole loop is hands-free; the policy already marks which
   steps must stay click-only.
-- **Arranging icons** (sort the Desktop by kind or date in Finder): needs Finder automation, which
-  asks for one more macOS permission.
 - **Live Claude Code progress and diffs** in the island while it edits.

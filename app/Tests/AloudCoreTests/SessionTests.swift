@@ -285,7 +285,7 @@ struct StreamingSessionTests {
         s.handle(.armPreroll)
         front.ctx = DictationContext(bundleID: "com.todesktop.230313mzl4w4u92", windowTitle: "auth.ts — api")
         await s.handle(.finish(.dictation))?.value
-        #expect(cleaner.contexts == [DictationContext(bundleID: "com.todesktop.230313mzl4w4u92", windowTitle: "auth.ts — api")])
+        #expect(cleaner.contexts == [DictationContext(bundleID: "com.todesktop.230313mzl4w4u92", windowTitle: "auth.ts — api", sttSource: .local)])
     }
 
     @Test func taskRejectedByAgentIsReported() async {

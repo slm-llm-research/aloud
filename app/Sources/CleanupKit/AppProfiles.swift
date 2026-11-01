@@ -20,11 +20,16 @@ public struct AppContext: Equatable, Sendable {
     public var bundleID: String?
     public var appName: String?
     public var windowTitle: String?
+    /// The transcript came from a recognizer that mishears more (the on-device fallback): always run
+    /// the model so it can repair misheard words, even when the text otherwise looks clean.
+    public var repairRecognition: Bool
 
-    public init(bundleID: String? = nil, appName: String? = nil, windowTitle: String? = nil) {
+    public init(bundleID: String? = nil, appName: String? = nil, windowTitle: String? = nil,
+                repairRecognition: Bool = false) {
         self.bundleID = bundleID
         self.appName = appName
         self.windowTitle = windowTitle
+        self.repairRecognition = repairRecognition
     }
 }
 

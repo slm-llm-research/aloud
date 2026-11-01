@@ -235,6 +235,18 @@ Each dictation gets a **mode** and an **edit level**:
 | Coding agent | Claude Code / Codex / Aider in a terminal, Cursor, VS Code, Zed, Xcode, the Codex app | Identifiers in `code form`. Multi-part requests are laid out as Goal / Context / Constraints using **your sentences**; thinking aloud stays as paragraphs. |
 | Shell | A terminal at a plain shell prompt | One line, spoken symbols as symbols ("dash b" → `-b`), never run |
 
+**Misheard words.** Before cleanup, a separate pass looks for words the recognizer got wrong. These
+are usually caused by background noise or rare names, for example "poll request" for "pull request" or a
+stray word inside "Shift plus Command". The model doesn't rewrite anything: it only names each wrong span
+and what was meant, and Aloud applies the fix itself, only if:
+- the span appears exactly once;
+- at most a couple of words change;
+- no "not" or "never" is added or removed.
+
+Correct but unusual words stay ("my cup is on the desk"). Every fix is written to the log ("repaired:
+poll request -> pull request"). Shell commands are never repaired. Turn it off with **Fix misheard words**
+in the menu.
+
 **What the guardrail rejects** (the next model is tried, then the rule-cleaned text):
 - **Rewording:** too many of your content words missing, or too many new ones.
 - **Meaning flips:** a "not", "never" or "don't" added or dropped.
@@ -267,8 +279,9 @@ Past tasks are rebuilt from the audit log, so they survive restarts.
 |---|---|---|
 | `list_dir`, `find_files`, `find_folders`, `search_files`, `read_file` | Read inside allowed folders | No |
 | `write_file` | Write inside allowed folders | Yes, with a preview |
-| `organize_files` | Move a batch of files and folders into folders ("organize my desktop"); never overwrites or deletes | Yes, once for the whole batch, grouped by destination |
+| `organize_files` | Move a batch of files and folders into folders ("organize my desktop") and remove empty leftover folders; never overwrites or deletes anything with content | Yes, once for the whole batch, grouped by destination |
 | `undo_organize` | Put the last organized batch back ("undo that") and remove the folders it created if empty | Yes |
+| `arrange_desktop` | Sort the Desktop's icons by name, kind, date or size (Finder's Sort By); no files move | No. The first time, macOS asks whether Aloud may control Finder |
 | `run_shell` | Run allowlisted programs (`git`, `npm`, `swift`, `pytest`, …) in an allowed folder; every program in a pipeline must be allowlisted, no command substitution or redirection | Yes |
 | `claude_code_task` | Hand a coding task to Claude Code in an allowed repo (edits only, no shell or web) | Yes |
 | `open_app`, `open_url` | Open an application or a web page | Yes |

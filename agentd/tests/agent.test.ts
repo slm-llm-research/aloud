@@ -444,3 +444,46 @@ describe("organize_files (desktop demo)", () => {
     expect(again).toMatch(/no organize to undo/);
   });
 });
+
+describe("desktop tidy follow-ups", () => {
+  it("finds macOS screenshot names even when the model writes a plain space", async () => {
+    const env = setup();
+    const real = "Screenshot 2026-09-08 at 9.42.43 AM.png";
+    writeFileSync(path.join(env.root, real), "png");
+    const [out] = await run(env, [["organize_files", { moves: [
+      { from: path.join(env.root, "Screenshot 2026-09-08 at 9.42.43 AM.png"), toFolder: path.join(env.root, "Screenshots") },
+    ] }]]);
+    expect(out).toContain("Moved 1 item(s)");
+    expect(existsSync(path.join(env.root, "Screenshots", real))).toBe(true);
+  });
+
+  it("removes empty leftover folders in the same approval, keeps non-empty ones, and undo recreates them", async () => {
+    const env = setup();
+    for (const d of ["untitled folder", "untitled folder 2", "Keep"]) mkdirSync(path.join(env.root, d));
+    writeFileSync(path.join(env.root, "untitled folder 2", ".DS_Store"), "");
+    writeFileSync(path.join(env.root, "Keep", "a.txt"), "a");
+    const [out] = await run(env, [["organize_files", {
+      removeEmptyFolders: ["untitled folder", "untitled folder 2", "Keep"].map((d) => path.join(env.root, d)),
+    }]]);
+    expect(env.requests).toHaveLength(1);
+    expect(env.requests[0]!.title).toMatch(/Organize 2 empty folders/);
+    expect(out).toContain("Removed 2 empty folder(s)");
+    expect(out).toContain("Keep is not empty (kept)");
+    expect(existsSync(path.join(env.root, "untitled folder"))).toBe(false);
+    expect(existsSync(path.join(env.root, "Keep", "a.txt"))).toBe(true);
+    const [undo] = await run(env, [["undo_organize", {}]]);
+    expect(undo).toContain("recreated 2 folder(s)");
+    expect(existsSync(path.join(env.root, "untitled folder 2"))).toBe(true);
+  });
+
+  it("sorting desktop icons needs no approval and builds Finder's Sort By script", async () => {
+    const { decide } = await import("../src/effects.js");
+    const { arrangeDesktop, arrangeScript } = await import("../src/tools/arrange.js");
+    expect(decide(arrangeDesktop.effects({ by: "kind" }, defaultConfig()))).toEqual({ kind: "auto" });
+    expect(arrangeDesktop.title!({ by: "modified" }, defaultConfig())).toBe("Sort Desktop icons by date modified");
+    const script = arrangeScript("kind");
+    expect(script).toContain("set arrangement of icon view options of window of desktop to arranged by kind");
+    expect(script).toContain("clean up window of desktop by kind");
+    expect(arrangeScript("none")).toContain("not arranged");
+  });
+});

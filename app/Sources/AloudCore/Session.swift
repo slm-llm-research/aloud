@@ -53,10 +53,15 @@ public struct DictationContext: Equatable, Sendable {
     public var bundleID: String?
     public var appName: String?
     public var windowTitle: String?
-    public init(bundleID: String? = nil, appName: String? = nil, windowTitle: String? = nil) {
+    /// Which recognizer's text this is, once known: the on-device fallback mishears more, so cleanup
+    /// always gives its text a misrecognition pass.
+    public var sttSource: TranscriptSource?
+    public init(bundleID: String? = nil, appName: String? = nil, windowTitle: String? = nil,
+                sttSource: TranscriptSource? = nil) {
         self.bundleID = bundleID
         self.appName = appName
         self.windowTitle = windowTitle
+        self.sttSource = sttSource
     }
 }
 
@@ -260,7 +265,9 @@ public final class Session {
             return
         }
 
-        let cleaned = await cleaner?.clean(raw, context: context) ?? CleanupOutcome(text: raw, via: "none")
+        var cleanContext = context
+        cleanContext.sttSource = outcome.source
+        let cleaned = await cleaner?.clean(raw, context: cleanContext) ?? CleanupOutcome(text: raw, via: "none")
         let text = cleaned.text.isEmpty ? raw : cleaned.text
 
         var insertedAt = clock.now

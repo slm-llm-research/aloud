@@ -59,7 +59,8 @@ final class CleanerBox: TextCleaning, @unchecked Sendable {
     func clean(_ text: String, context: DictationContext) async -> CleanupOutcome {
         let c = lock.withLock { cleaner }
         let r = await c.clean(text, context: AppContext(bundleID: context.bundleID, appName: context.appName,
-                                                        windowTitle: context.windowTitle))
+                                                        windowTitle: context.windowTitle,
+                                                        repairRecognition: context.sttSource == .local))
         var tags: [String] = []
         if r.restructured { tags.append("restructured") }
         tags += r.notes

@@ -31,10 +31,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let offlineItem = NSMenuItem(title: "Offline mode (local only, no cleanup)", action: #selector(toggleOffline),
                                          keyEquivalent: "")
     private let cleanupItem = NSMenuItem(title: "AI cleanup", action: #selector(toggleCleanup), keyEquivalent: "")
+    private let repairItem = NSMenuItem(title: "Fix misheard words", action: #selector(toggleRepair), keyEquivalent: "")
 
     private var offline: Bool {
         get { UserDefaults.standard.bool(forKey: "offline") }
         set { UserDefaults.standard.set(newValue, forKey: "offline") }
+    }
+    /// A model pass that fixes words the recognizer got wrong (noise, rare names) before cleanup.
+    private var repairEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "repairWords") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "repairWords") }
     }
     private var cleanupEnabled: Bool {
         get { UserDefaults.standard.object(forKey: "cleanup") as? Bool ?? true }
@@ -81,7 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         offlineItem.target = self
         cleanupItem.target = self
+        repairItem.target = self
         menu.addItem(cleanupItem)
+        menu.addItem(repairItem)
         menu.addItem(offlineItem)
         menu.addItem(NSMenuItem(title: "Edit Dictionary…", action: #selector(editDictionary), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Import API Keys from .env…", action: #selector(importKeys), keyEquivalent: ""))
@@ -153,8 +161,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if let k = KeyStore.get("GROQ_API_KEY") { chain.append(.init(OpenAICompatibleLLM.groq(apiKey: k), timeout: 1.5)) }
             if let k = KeyStore.get("ANTHROPIC_API_KEY") { chain.append(.init(AnthropicLLM(apiKey: k), timeout: 2.5)) }
         }
-        cleaner.set(Cleaner(chain: chain, dictionary: dict))
-        dlog("config: offline=\(offline) cleanup=\(cleanupEnabled) llms=\(chain.map(\.llm.name)) dictionary=\(dict.terms.count) terms/\(dict.replacements.count) fixes")
+        cleaner.set(Cleaner(chain: chain, dictionary: dict, repair: repairEnabled ? .always : .off, repairTimeout: 1.2))
+        dlog("config: offline=\(offline) cleanup=\(cleanupEnabled) repair=\(repairEnabled) llms=\(chain.map(\.llm.name)) dictionary=\(dict.terms.count) terms/\(dict.replacements.count) fixes")
     }
 
     private func start() async {
@@ -206,6 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshTasks()
         offlineItem.state = offline ? .on : .off
         cleanupItem.state = cleanupEnabled ? .on : .off
+        repairItem.state = repairEnabled ? .on : .off
     }
 
     /// Recent agent tasks, newest first; choosing one opens it in the Task Center.
@@ -254,6 +263,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func toggleOffline() {
         offline.toggle()
+        reconfigure()
+        refreshMenu()
+    }
+
+    @objc private func toggleRepair() {
+        repairEnabled.toggle()
         reconfigure()
         refreshMenu()
     }

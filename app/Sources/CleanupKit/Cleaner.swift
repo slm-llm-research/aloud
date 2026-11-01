@@ -31,14 +31,36 @@ public struct Cleaner: Sendable {
 
     let chain: [Step]
     let dictionary: PersonalDictionary
+    /// When to run the misrecognition repair pass before cleanup (RecognitionRepair).
+    let repair: RepairPolicy
+    let repairTimeout: TimeInterval
+
+    public enum RepairPolicy: Sendable {
+        case off
+        /// Only text from the on-device fallback recognizer (context.repairRecognition).
+        case onDeviceOnly
+        case always
+    }
     /// Restructuring produces more text; it gets a longer timeout per step.
     let restructureTimeoutFactor: Double
 
     public init(chain: [Step], dictionary: PersonalDictionary = PersonalDictionary(),
-                restructureTimeoutFactor: Double = 2) {
+                restructureTimeoutFactor: Double = 2, repair: RepairPolicy = .off, repairTimeout: TimeInterval = 1.5) {
         self.chain = chain
         self.dictionary = dictionary
         self.restructureTimeoutFactor = restructureTimeoutFactor
+        self.repair = repair
+        self.repairTimeout = repairTimeout
+    }
+
+    /// Commands and very short utterances are left alone: too little context to judge a word.
+    func shouldRepair(_ text: String, mode: DictationMode, context: AppContext) -> Bool {
+        guard !chain.isEmpty, mode != .terminal, Prepass.wordCount(text) >= 4 else { return false }
+        switch repair {
+        case .off: return false
+        case .onDeviceOnly: return context.repairRecognition
+        case .always: return true
+        }
     }
 
     /// Removes a "Context:" line whose only content is the app being typed into (e.g. "Context: Terminal
@@ -67,11 +89,20 @@ public struct Cleaner: Sendable {
         let profile = AppProfiles.classify(context)
         let route = ModeRouter.route(OutputHygiene.collapseStutters(dictionary.apply(transcript)), context: context)
         let mode = route.mode
-        let fixed = route.transcript
+        var fixed = route.transcript
+        var repairNotes: [String] = []
+        if shouldRepair(fixed, mode: mode, context: context) {
+            let allTitleTerms = AppProfiles.terms(fromWindowTitle: context.windowTitle)
+            let r = await RecognitionRepair.run(fixed, terms: dictionary.terms + allTitleTerms, context: context,
+                                                chain: chain, timeout: repairTimeout)
+            fixed = r.text
+            repairNotes = r.notes
+        }
         let titleTerms = AppProfiles.mentionedTerms(AppProfiles.terms(fromWindowTitle: context.windowTitle), in: fixed)
         let terms = dictionary.terms + titleTerms
         let pre = Prepass.run(fixed)
-        var notes = ["mode=\(mode.rawValue) (\(route.reason))"] + pre.reasons
+        var notes = ["mode=\(mode.rawValue) (\(route.reason))"] + repairNotes + pre.reasons
+
 
         // Long coding-agent requests and explicit cues may be organized; the model decides from the
         // content whether a long coding utterance is a multi-part request or thinking aloud.

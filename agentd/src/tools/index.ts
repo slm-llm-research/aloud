@@ -5,6 +5,7 @@ import type { AgentConfig } from "../config.js";
 import { confine, PathOutsideRootsError } from "../paths.js";
 import { checkCommand } from "../shellPolicy.js";
 import { clip, defineTool, oneLine, tilde, type ToolContract } from "./contract.js";
+import { arrangeDesktop } from "./arrange.js";
 import { organizeFiles, undoOrganize } from "./organize.js";
 import { runProcess } from "./process.js";
 
@@ -321,5 +322,5 @@ export const claudeCodeTask = defineTool({
 
 export const ALL_TOOLS: ToolContract[] = [
   openApp, openUrl, listDir, findFolders, findFiles, searchFiles, readFile, writeFile, organizeFiles, undoOrganize,
-  runShell, claudeCodeTask,
+  arrangeDesktop, runShell, claudeCodeTask,
 ] as ToolContract[];

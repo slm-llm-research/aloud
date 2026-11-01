@@ -276,3 +276,97 @@ struct CleanupLiveTests {
         try await Self.check(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
     }
 }
+
+// MARK: - Misrecognition repair
+
+@Suite("Misrecognition repair")
+struct RepairTests {
+    typealias Fix = RecognitionRepair.Fix
+
+    @Test func appliesSmallFixesOnly() {
+        let text = "Please refer to the last command I gave to the shift cup plus command agent mode."
+        let r = RecognitionRepair.apply([Fix(heard: "shift cup plus", meant: "Shift plus")], to: text)
+        #expect(r.text == "Please refer to the last command I gave to the Shift plus command agent mode.")
+        #expect(r.notes == ["repaired: shift cup plus -> Shift plus"])
+    }
+
+    @Test func refusesRewritesAmbiguityAndNegations() {
+        let text = "I do not want the poll and the poll results."
+        let r = RecognitionRepair.apply([
+            Fix(heard: "poll", meant: "pull"),                                    // twice in the text
+            Fix(heard: "I do not want", meant: "I do want"),                     // flips a negation
+            Fix(heard: "the poll results", meant: "a completely different idea"), // too different
+            Fix(heard: "missing words", meant: "other words"),                   // not there
+        ], to: text)
+        #expect(r.text == text)
+        #expect(r.notes.allSatisfy { $0.hasPrefix("repair refused") })
+    }
+
+    @Test func parsesTheReplyTolerantly() {
+        let raw = "```json\n{\"fixes\": [{\"heard\": \"get hub\", \"meant\": \"GitHub\"}]}\n```"
+        #expect(RecognitionRepair.parse(raw) == [Fix(heard: "get hub", meant: "GitHub")])
+        #expect(RecognitionRepair.parse("no json here").isEmpty)
+    }
+
+    @Test func runsBeforeCleanupPerPolicy() async {
+        let llm = FakeLLM(name: "groq", reply: #"{"fixes": [{"heard": "poll request", "meant": "pull request"}]}"#)
+        let text = "Open a poll request for the login fix."
+        let off = await Cleaner(chain: [.init(llm, timeout: 1)]).clean(text)
+        #expect(off.text == text)
+        let always = await Cleaner(chain: [.init(llm, timeout: 1)], repair: .always).clean(text)
+        #expect(always.text == "Open a pull request for the login fix.")
+        #expect(always.notes.contains("groq repaired: poll request -> pull request"))
+        let onDevice = Cleaner(chain: [.init(llm, timeout: 1)], repair: .onDeviceOnly)
+        #expect(await onDevice.clean(text).text == text)
+        #expect(await onDevice.clean(text, context: AppContext(repairRecognition: true)).text.contains("pull request"))
+    }
+
+    @Test func commandsAreNotRepaired() async {
+        let llm = FakeLLM(name: "groq", reply: #"{"fixes": [{"heard": "status", "meant": "stash"}]}"#)
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)], repair: .always).clean("git status --short", context: AppContext(
+            bundleID: "com.apple.Terminal", appName: "Terminal", windowTitle: "~ — -zsh — 80×24"))
+        #expect(r.text.contains("status"))
+    }
+
+    @Test func aFailingModelLeavesTheTextAlone() async {
+        let llm = FakeLLM(name: "groq", error: URLError(.timedOut))
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)], repair: .always).clean("Open a poll request for the login fix.")
+        #expect(r.text == "Open a poll request for the login fix.")
+    }
+}
+
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter RepairLive
+@Suite("RepairLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
+struct RepairLiveTests {
+    static let env = ProcessInfo.processInfo.environment
+    static let terminal = AppContext(bundleID: "com.apple.Terminal", appName: "Terminal",
+                                     windowTitle: "aloud — claude — 120×40", repairRecognition: true)
+
+    /// (heard, must contain, must not contain): repairs, and correct unusual words that must survive.
+    static let cases: [(String, String, String?)] = [
+        // In a coding-agent window cleanup may write the spoken "plus" as "+"; the stray word must go.
+        ("please refer to the last command I gave to the shift cup plus command agent mode", "command agent mode", "cup"),
+        ("open a poll request for the login fix and ask Priya to review it", "pull request", "poll"),
+        ("I left my cup on the desk next to the keyboard", "cup on the desk", nil),
+        ("the book is on pre-order until March", "pre-order", nil),
+        ("run the tests in agentd and tell me what failed", "agentd", nil),
+    ]
+
+    static func check(_ llm: CleanupLLM) async {
+        let c = Cleaner(chain: [.init(llm, timeout: 6)], repair: .always, repairTimeout: 6)
+        for (heard, want, not) in cases {
+            let r = await c.clean(heard, context: terminal)
+            let out = r.text.lowercased()
+            #expect(out.contains(want), "\(llm.name): \(heard) -> \(r.text) [\(r.via) \(r.notes)]")
+            if let not { #expect(!out.contains(not), "\(llm.name): \(heard) -> \(r.text)") }
+        }
+    }
+
+    @Test(.enabled(if: env["GROQ_API_KEY"] != nil)) func groq() async {
+        await Self.check(OpenAICompatibleLLM.groq(apiKey: Self.env["GROQ_API_KEY"]!))
+    }
+
+    @Test(.enabled(if: env["ANTHROPIC_API_KEY"] != nil)) func haiku() async {
+        await Self.check(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
+    }
+}

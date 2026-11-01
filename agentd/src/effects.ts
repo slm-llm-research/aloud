@@ -7,6 +7,7 @@ export type Effect =
   | "read_local" // read files / list folders / search
   | "launch_app" // open an app
   | "open_url" // open a web page in the browser
+  | "arrange_view" // change how something is laid out on screen (Desktop icon sort); no data changes
   | "write_local" // create or change files
   | "execute_process" // run a command or program
   | "network_write" // push, publish, post

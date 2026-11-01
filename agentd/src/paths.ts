@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -42,4 +42,23 @@ export function confine(input: string, roots: readonly string[], home = homedir(
     throw new PathOutsideRootsError(`${input} is outside the allowed folders (${roots.join(", ")})`);
   }
   return resolved;
+}
+
+/** Names compare equal across Unicode forms and space look-alikes (NFC, no-break and narrow spaces). */
+export function looseName(name: string): string {
+  return name.normalize("NFC").replace(/[\s    ]+/g, " ").trim().toLowerCase();
+}
+
+/**
+ * The path as given if it exists; otherwise the one entry in its folder whose name matches loosely.
+ * macOS screenshot names have a narrow no-break space before "AM"/"PM", which the model writes back
+ * as a plain space, so an exact lookup says the file doesn't exist.
+ */
+export function existingPath(p: string): string | null {
+  if (existsSync(p)) return p;
+  const dir = path.dirname(p);
+  const want = looseName(path.basename(p));
+  let matches: string[];
+  try { matches = readdirSync(dir).filter((n) => looseName(n) === want); } catch { return null; }
+  return matches.length === 1 ? path.join(dir, matches[0]!) : null;
 }

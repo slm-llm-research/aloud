@@ -34,6 +34,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key>
   <string>Aloud listens only while you hold Right Shift (or after you double-tap it) to turn your speech into text.</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Aloud's agent asks Finder to sort your Desktop icons when you tell it to.</string>
 </dict>
 </plist>
 PLIST
