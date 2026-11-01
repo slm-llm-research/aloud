@@ -72,6 +72,9 @@ public enum ModeRouter {
 
     static let promptCues = ["as a prompt", "make this a prompt", "make that a prompt", "make it a prompt",
                              "turn this into a prompt", "prompt mode"]
+    /// Words just before a trailing cue that mean the speaker is talking about the phrase.
+    static let talkingAbout: Set<String> = ["is", "was", "it's", "that's", "this", "that", "like", "phrase", "say", "said",
+                                            "saying", "says", "called", "xyz", "something", "word", "words", "mention"]
     static let listCues = ["make this a list", "make that a list", "make it a list", "as a list", "list mode"]
     /// Lead-ins that name a list ("grocery list eggs milk ..."). Kept in the text: the model turns
     /// them into nothing or a short title.
@@ -152,6 +155,9 @@ public enum ModeRouter {
             }
             if lower.hasSuffix(cue) {
                 let rest = String(t.dropLast(cue.count)).trimmingCharacters(in: trimSet)
+                // "... that this is XYZ as a prompt": talking about the phrase, not asking for it.
+                let before = rest.lowercased().split(whereSeparator: { !$0.isLetter && $0 != "'" }).suffix(2).map(String.init)
+                if before.contains(where: talkingAbout.contains) { continue }
                 if !rest.isEmpty { return rest }
             }
         }

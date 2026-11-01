@@ -90,6 +90,13 @@ public enum OutputHygiene {
             let rest = t[m.upperBound...]
             return title + "\n- " + rest.prefix(1).uppercased() + rest.dropFirst()
         }
+        // "- Grocery list\n- Eggs\n- Milk": the spoken list name came back as the first item.
+        let leadIns = ModeRouter.listLeadIns.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+        if let m = t.range(of: "^[-*•] (?i)(" + leadIns + ")[:.,]?[ \\t]*\n", options: .regularExpression),
+           t[m.upperBound...].hasPrefix("- ") || t[m.upperBound...].hasPrefix("* ") || t[m.upperBound...].hasPrefix("• ") {
+            let head = t[m].dropFirst(2).trimmingCharacters(in: CharacterSet(charactersIn: ":., \t\n"))
+            return head.prefix(1).uppercased() + head.dropFirst() + ":\n" + listShape(String(t[m.upperBound...]))
+        }
         // "- To-do list email the landlord": a lead-in without its colon.
         if let m = t.range(of: "^[-*•] (?i)(" + ModeRouter.listLeadIns.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
                            + ")[:,]?\\s+(?=\\S)", options: .regularExpression) {
@@ -177,32 +184,83 @@ public enum OutputHygiene {
         return t
     }
 
-    /// "... as a prompt" when the model kept one paragraph: the speaker's own sentences sorted under
-    /// Goal (asks and questions), Context (everything else) and Constraints (don't / never / only ...).
-    /// Only labels are added; no sentence is reworded.
+    /// Starts a new sentence at each match of `before` (its captured word becomes the sentence start),
+    /// but only when the sentence so far has at least `minWords` words, so "check and fix it" stays whole.
+    static func splitRunOn(_ s: String, before: String, minWords: Int = 3) -> String {
+        guard let re = try? NSRegularExpression(pattern: "\\s+(?:" + before + ")", options: [.caseInsensitive]) else { return s }
+        var out = ""
+        var last = s.startIndex
+        for m in re.matches(in: s, range: NSRange(s.startIndex..., in: s)) {
+            guard let whole = Range(m.range, in: s) else { continue }
+            let word = (1..<m.numberOfRanges).lazy.compactMap { Range(m.range(at: $0), in: s) }.first
+            guard let word else { continue }
+            let sinceBoundary = (out + s[last..<whole.lowerBound]).components(separatedBy: CharacterSet(charactersIn: ".!?")).last ?? ""
+            guard sinceBoundary.split(separator: " ").count >= minWords else { continue }
+            var piece = String(s[last..<whole.lowerBound])
+            while piece.hasSuffix(",") || piece.hasSuffix(" ") { piece.removeLast() }
+            out += piece + ". "
+            out += s[word.lowerBound..<whole.upperBound]
+            last = whole.upperBound
+        }
+        return out + s[last...]
+    }
+
+    /// "... as a prompt" when the model didn't lay it out: the speaker's own sentences sorted under
+    /// Goal, Tasks (one bullet per separate ask, when there are two or more), Context, Constraints
+    /// (don't / never / only / make sure ...) and Done when ("until CI is green"). Only labels and
+    /// bullets are added; no sentence is reworded.
     public static func promptShape(_ s: String) -> String {
-        var flat = s.replacingOccurrences(of: "\\s*\\n+\\s*", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "^(?i)goal:\\s*", with: "", options: .regularExpression)
+        var flat = s.replacingOccurrences(of: "^\\s*[-*]\\s+", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "\\s*\\n+\\s*(?:[-*]\\s+)?", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "(?i)\\b(?:goal|tasks|context|constraints|done when):\\s*", with: "", options: .regularExpression)
+        let runOn = flat.trimmingCharacters(in: .whitespaces).dropLast().rangeOfCharacter(from: CharacterSet(charactersIn: ".!?")) == nil
         // "Add dark mode and keep the existing colors" -> the "keep ..." clause is its own constraint.
         flat = flat.replacingOccurrences(
             of: ",?\\s+(?:and|but)\\s+((?i:keep|don't|do not|never|avoid|make sure|only)\\b)", with: ". $1",
             options: .regularExpression)
+        let verbs = "make|fix|add|write|create|build|run|check|update|remove|delete|change|refactor|explain|tell|show|give|"
+            + "find|help|implement|test|push|open|review|move|rename|scan|lint|clean|set up|deploy|migrate|document"
+        // "Scan the code base, add linting, and run the tests" -> one ask per comma-separated clause.
+        flat = flat.replacingOccurrences(of: ",\\s+(?:and\\s+)?((?i:\(verbs))\\b)", with: ". $1", options: .regularExpression)
+        // Run-on speech (no punctuation when every model failed): "... and run the tests", "... and keep
+        // going until", "... don't touch X" start new items once the current one has a few words.
+        if runOn {
+            flat = splitRunOn(flat, before: "(?:and\\s+)((?:\(verbs)|keep|make sure)\\b)|(?<!\\b(?:i|we|you|it|they|that|this|just)\\s)((?:don't|do not|never)\\b)")
+        }
         guard let re = try? NSRegularExpression(pattern: "\\S.*?(?:[.!?]+(?=\\s|$)|$)") else { return s }
         let sentences = re.matches(in: flat, range: NSRange(flat.startIndex..., in: flat))
             .compactMap { Range($0.range, in: flat).map { flat[$0].trimmingCharacters(in: .whitespaces) } }
             .filter { !$0.isEmpty }.map { $0.prefix(1).uppercased() + $0.dropFirst() }
-        let asks = "^(?i)(?:(?:so|and|also|then|ok|okay|please)[, ]+)*(?:can|could|would|will|please|how|what|why|where|when|which|who|is|are|do|does|i want|i need|i'd like|we need|let's|make|fix|add|write|create|build|run|check|update|remove|delete|change|refactor|explain|tell|show|give|find|help|implement|test|push|open|review|move|rename)\\b"
-        let rules = "(?i)\\b(?:don't|dont|do not|never|without|avoid|only|must|make sure|keep)\\b"
-        var goal: [String] = [], context: [String] = [], constraints: [String] = []
+        let lead = "^(?i)(?:(?:so|and|also|then|ok|okay|hey)[, ]+)*"
+        let requests = lead + "(?:(?:can|could|would|will) you\\b|please\\b|i want\\b|i need\\b|i'd like\\b|we need\\b|let's\\b|(?:\(verbs))\\b)"
+        let questions = lead + "(?:how|what|why|where|when|which|who|is|are|do|does)\\b"
+        // "I don't know why ..." is context, not a rule.
+        let rules = "(?i)(?<!\\b(?:i|we|they|it)\\s)\\b(?:don't|dont|do not|never|without|avoid|only|must|make sure|keep)\\b"
+        let ruleStart = lead + "(?:don't|dont|do not|never|avoid|only|make sure|keep|without)\\b"
+        let doneWhen = "(?i)(?:^(?:it's |it is )?done when\\b|\\buntil\\b.*\\b(?:green|pass|passes|passing|works|succeeds)\\b)"
+        var asks: [String] = [], qs: [String] = [], context: [String] = [], constraints: [String] = [], done: [String] = []
         for x in sentences {
-            let isAsk = x.range(of: asks, options: .regularExpression) != nil
-            if !isAsk, x.range(of: rules, options: .regularExpression) != nil { constraints.append(x) }
-            else if isAsk || x.hasSuffix("?") { goal.append(x) }
+            let matches = { (p: String) in x.range(of: p, options: .regularExpression) != nil }
+            if matches(doneWhen) { done.append(x) }
+            else if matches(ruleStart) { constraints.append(x) }
+            else if matches(requests) { asks.append(x) }
+            else if matches(rules) { constraints.append(x) }
+            else if matches(questions) || x.hasSuffix("?") { qs.append(x) }
             else { context.append(x) }
         }
+        // A question leads ("what's the status ...?") and every request becomes a task; without one,
+        // the first request is the goal and any further ones are tasks.
+        var goal: [String] = qs
+        var tasks: [String] = []
+        if !goal.isEmpty { tasks = asks }
+        else if !asks.isEmpty { goal.append(asks.removeFirst()); tasks = asks }
         if goal.isEmpty, !context.isEmpty { goal.append(context.removeFirst()) }
         if goal.isEmpty { return s }
-        return [("Goal", goal), ("Context", context), ("Constraints", constraints)]
-            .filter { !$0.1.isEmpty }.map { "\($0.0): " + $0.1.joined(separator: " ") }.joined(separator: "\n")
+        var out = ["Goal: " + goal.joined(separator: " ")]
+        if !tasks.isEmpty { out.append("Tasks:\n" + tasks.map { "- " + $0 }.joined(separator: "\n")) }
+        for (label, items) in [("Context", context), ("Constraints", constraints), ("Done when", done)] where !items.isEmpty {
+            out.append("\(label): " + items.joined(separator: " "))
+        }
+        return out.joined(separator: "\n")
     }
 }

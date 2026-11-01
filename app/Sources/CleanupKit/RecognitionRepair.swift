@@ -28,7 +28,7 @@ public enum RecognitionRepair {
     Rules:
     - Only fix what is clearly wrong AND where you are confident what was meant from the sound and the sentence. When unsure, leave it.
     - Do not fix grammar, punctuation, capitalization, filler words, style or word choice. Do not expand or shorten phrases. Keep key names and words as spoken words (write "Shift plus Command", never "Shift+Cmd").
-    - Unusual but sensible words are not errors ("my cup is on the desk", "it's on pre-order").
+    - Unusual but sensible words are not errors ("my cup is on the desk", "it's on pre-order", "the allowed folders"). Never swap a word that makes sense as heard for a name, even one from <terms> or <context> that sounds similar.
     - "heard" must be copied exactly from the transcript, 1 to 4 words, including the wrong word plus a neighbour if needed to make it unique. "meant" is what the speaker said, at most 4 words.
 
     Reply with JSON only: {"fixes": [{"heard": "...", "meant": "..."}]}. Most transcripts are fine: then reply {"fixes": []}.
@@ -44,8 +44,9 @@ public enum RecognitionRepair {
 
     public static func user(transcript: String, terms: [String], context: AppContext) -> String {
         var parts: [String] = []
-        let where_ = [context.appName, context.windowTitle].compactMap { $0 }.filter { !$0.isEmpty }
-        if !where_.isEmpty { parts.append("<context>\(where_.joined(separator: " — "))</context>") }
+        // The app only, not the window title: names in a title ("aloud — claude") pulled the model into
+        // "repairing" sensible words into them ("allowed code base" -> "Claude code base").
+        if let app = context.appName, !app.isEmpty { parts.append("<context>\(app)</context>") }
         if !terms.isEmpty { parts.append("<terms>\(terms.joined(separator: ", "))</terms>") }
         parts.append("<transcript>\(transcript)</transcript>")
         return parts.joined(separator: "\n")
@@ -85,6 +86,12 @@ public enum RecognitionRepair {
                 continue
             }
             let ranges = matches(of: heard, in: out)
+            // A capitalized word mid-sentence is a name the recognizer chose on purpose ("I used Aloud"):
+            // the model swapping it for a similar-sounding name ("Claude") was the most common bad repair.
+            if let r = ranges.first, isNameMidSentence(out, ranges: r, changedFrom: hw, to: mw) {
+                notes.append("repair refused: \(heard) -> \(meant) (name)")
+                continue
+            }
             guard ranges.count == 1 else {
                 notes.append("repair refused: \(heard) -> \(meant) (\(ranges.isEmpty ? "not found" : "ambiguous"))")
                 continue
@@ -93,6 +100,19 @@ public enum RecognitionRepair {
             notes.append("repaired: \(heard) -> \(meant)")
         }
         return (out, notes)
+    }
+
+    static func isNameMidSentence(_ text: String, ranges r: Range<String.Index>, changedFrom hw: [String], to mw: [String]) -> Bool {
+        let meantLower = Set(mw.map { $0.lowercased() })
+        let span = text[r].split(separator: " ").map(String.init)
+        for (i, word) in span.enumerated() where !meantLower.contains(word.lowercased()) {
+            guard let first = word.first, first.isUppercase else { continue }
+            // Sentence start: the first word of the text, or after . ! ?
+            let before = i == 0 ? text[..<r.lowerBound].trimmingCharacters(in: .whitespaces) : span[i - 1]
+            if before.isEmpty || ".!?:".contains(before.last!) { continue }
+            return true
+        }
+        return false
     }
 
     /// Case-insensitive whole-word matches.
@@ -104,19 +124,18 @@ public enum RecognitionRepair {
         return re.matches(in: hay, range: NSRange(hay.startIndex..., in: hay)).compactMap { Range($0.range, in: hay) }
     }
 
-    /// One pass with the first model that answers in time; on any failure the text is unchanged.
+    /// One try with the first model; on any failure the text is unchanged. No fallback model: a slow
+    /// repair must not stack in front of cleanup's own retries (one dictation took 6.6 s that way).
     public static func run(_ text: String, terms: [String], context: AppContext,
                            chain: [Cleaner.Step], timeout: TimeInterval) async -> (text: String, notes: [String]) {
+        guard let step = chain.first else { return (text, []) }
         let user = user(transcript: text, terms: terms, context: context)
-        for step in chain {
-            do {
-                let raw = try await step.llm.complete(system: system, user: user, timeout: min(timeout, step.timeout))
-                let r = apply(parse(raw), to: text)
-                return (r.text, r.notes.map { "\(step.llm.name) \($0)" })
-            } catch {
-                continue
-            }
+        do {
+            let raw = try await step.llm.complete(system: system, user: user, timeout: min(timeout, step.timeout))
+            let r = apply(parse(raw), to: text)
+            return (r.text, r.notes.map { "\(step.llm.name) \($0)" })
+        } catch {
+            return (text, ["repair skipped (\(step.llm.name) unavailable)"])
         }
-        return (text, ["repair skipped"])
     }
 }

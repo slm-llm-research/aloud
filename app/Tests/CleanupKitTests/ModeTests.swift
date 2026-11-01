@@ -204,7 +204,7 @@ struct CleanerModeTests {
         let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean("grocery list eggs two litres of milk and some spinach")
         #expect(r.mode == .list)
         #expect(r.restructured)
-        #expect(r.text == "- Eggs\n- 2 litres of milk\n- Spinach")
+        #expect(r.text == "Grocery list:\n- Eggs\n- 2 litres of milk\n- Spinach")
     }
 
     @Test func emailKeepsTheSpeakersWords() async {
@@ -341,6 +341,31 @@ struct FieldTestTests {
         #expect(OutputHygiene.finish("Deploy the app", mode: .terminal) == "Deploy the app")
     }
 
+    /// From a real session: three asks used to land under "Goal" as one line.
+    @Test func promptShapeListsSeveralAsksAsTasks() {
+        let s = OutputHygiene.promptShape("Hey, what is the status on the allowed code base? Can you help me lint the code base "
+                                          + "and run proper tests? Make sure that you push on the PR until CI is green.")
+        #expect(s == "Goal: Hey, what is the status on the allowed code base?\n"
+                + "Tasks:\n- Can you help me lint the code base and run proper tests?\n"
+                + "Done when: Make sure that you push on the PR until CI is green.")
+        let t = OutputHygiene.promptShape("Scan the entire allowed codebase, add more linting tasks, and run the tests. "
+                                          + "Don't touch the agent folder.")
+        #expect(t == "Goal: Scan the entire allowed codebase.\nTasks:\n- Add more linting tasks.\n- Run the tests.\n"
+                + "Constraints: Don't touch the agent folder.")
+        // A model reply that put everything under one Goal label is re-sorted, not kept as one line.
+        let u = OutputHygiene.promptShape("Goal: Fix the login redirect. Add a test for it. Don't change the signup flow.")
+        #expect(u == "Goal: Fix the login redirect.\nTasks:\n- Add a test for it.\nConstraints: Don't change the signup flow.")
+        #expect(Cleaner.looksStructured(t))
+        // Unpunctuated run-on (every model failed): still one item per ask, a constraint and a done-when.
+        let v = OutputHygiene.promptShape("So I want you to scan the entire allowed code base add more linting tasks and run "
+                                          + "the tests and keep going until CI is green don't touch the agent folder")
+        #expect(v == "Goal: So I want you to scan the entire allowed code base add more linting tasks.\n"
+                + "Tasks:\n- Run the tests.\nConstraints: Don't touch the agent folder\n"
+                + "Done when: Keep going until CI is green.")
+        #expect(OutputHygiene.promptShape("I don't know why the login test fails and I need it fixed")
+                .hasPrefix("Goal: I don't know why the login test fails"))
+    }
+
     @Test func promptShapeSplitsAConstraintClause() {
         #expect(OutputHygiene.promptShape("Goal: Add dark mode to the settings page and keep the existing colors as the default.")
                 == "Goal: Add dark mode to the settings page.\nConstraints: Keep the existing colors as the default.")
@@ -465,5 +490,96 @@ struct NegationSpellingTests {
         #expect(Fidelity.negations("lol yeah ill push it tonight dont worry") == 1)
         #expect(Fidelity.negations("Lol yeah, I'll push it tonight, don't worry.") == 1)
         #expect(Fidelity.negations("I want to print the client list") == 0)
+    }
+}
+
+/// From a real WhatsApp session: "Grocery list" came back as the first bullet, and a list with
+/// hesitations lost its title and a comma.
+@Suite("Grocery list fixes")
+struct GroceryListTests {
+    @Test func listNameOnItsOwnBulletBecomesTheTitle() {
+        #expect(OutputHygiene.finish("- Grocery list\n- Eggs\n- Bacon\n- Milk\n- Meatloaf", mode: .list)
+                == "Grocery list:\n- Eggs\n- Bacon\n- Milk\n- Meatloaf")
+    }
+
+    @Test func hesitationBetweenListItemsKeepsOneComma() {
+        #expect(Prepass.run("Grocery list. Uh, I need eggs, uh, meatloaf, bread loaf, and pasta.").text
+                == "Grocery list. I need eggs, meatloaf, bread loaf, and pasta.")
+        #expect(Prepass.run("We should, uh, move the launch.").text == "We should move the launch.")
+    }
+
+    @Test func missingListNameIsPutBack() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>- Eggs\n- Meatloaf\n- Bread loaf\n- Pasta</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)])
+            .clean("Grocery list. Uh, I need eggs, uh, meatloaf, bread loaf, and pasta.", context: AppContext(bundleID: "net.whatsapp.WhatsApp"))
+        #expect(r.via == "groq", "\(r.notes)")
+        #expect(r.text == "Grocery list:\n- Eggs\n- Meatloaf\n- Bread loaf\n- Pasta")
+    }
+}
+
+/// From a real session: free speech in Claude Code was laid out as a prompt and lost its last words,
+/// because it ended with "... that this is XYZ as a prompt".
+@Suite("Prompt or free speech")
+struct PromptOrFreeSpeechTests {
+    @Test func talkingAboutTheCueIsNotTheCue() {
+        let said = "I do not want to explicitly tell the system that this is XYZ as a prompt."
+        let r = ModeRouter.route(said, context: AppContext(bundleID: "com.apple.Terminal", windowTitle: "✳ claude"))
+        #expect(!r.forceStructure)
+        #expect(r.transcript.hasSuffix("as a prompt."))
+        #expect(ModeRouter.route("fix the login bug and add a test, as a prompt", context: AppContext()).forceStructure)
+        #expect(ModeRouter.route("fix the login bug as a prompt", context: AppContext()).forceStructure)
+    }
+
+    @Test func mediumCodingDictationsGoToTheModelToDecide() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>Goal: Fix the redirect in the login handler.\nConstraints: Don't touch the signup form or the session code, please.</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean(
+            "fix the redirect in the login handler and don't touch the signup form or the session code please",
+            context: AppContext(bundleID: "com.apple.Terminal", windowTitle: "✳ claude"))
+        #expect(r.via == "groq")
+        #expect(r.restructured)
+    }
+
+    /// Free speech kept as sentences gets light cleanup's strict checks: dropping words is rejected.
+    @Test func freeSpeechKeptAsSentencesIsHeldToLightChecks() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>The build is faster. The settings page flickers.</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean(
+            "so I tried the new build this morning and the login felt a lot faster but the settings page still flickers when you switch tabs",
+            context: AppContext(bundleID: "com.apple.Terminal", windowTitle: "✳ claude"))
+        #expect(r.via == "fallback")
+    }
+
+    @Test func instructionsAreToldApartFromFreeSpeech() {
+        #expect(Cleaner.looksLikeInstructions("I want you to, um, look at the auth middleware and figure out why the token refresh is failing, and then write a fix with tests, but don't touch the database layer."))
+        #expect(Cleaner.looksLikeInstructions("can you refactor fetch user to use async await, and make sure the error handling still logs to Sentry, don't change the public API"))
+        #expect(!Cleaner.looksLikeInstructions("so I tried the new build this morning and the login felt a lot faster but the settings page still flickers when you switch tabs, maybe we can look at it later"))
+        #expect(!Cleaner.looksLikeInstructions("I used Aloud and then interacted with Claude CLI, and I was testing two modes, one where I gave it a set of instructions and then free speech"))
+        #expect(!Cleaner.looksLikeInstructions("okay so the hotkey thing, when I double tap the function key it should latch the mic open, and then a single tap closes it"))
+        #expect(!Cleaner.looksLikeInstructions("fix the login redirect"))  // too short to need a layout
+    }
+
+    /// The faster model kept a clear request as sentences: the app lays them out.
+    @Test func clearRequestKeptAsSentencesIsLaidOut() async {
+        let said = "I want you to look at the auth middleware and figure out why the token refresh is failing, and then write a fix with tests, but don't touch the database layer."
+        let llm = FakeLLM(name: "groq", reply: "<edited>\(said)</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)]).clean(said, context: AppContext(bundleID: "com.apple.Terminal", windowTitle: "✳ claude"))
+        #expect(r.text == "Goal: I want you to look at the auth middleware and figure out why the token refresh is failing, and then write a fix with tests.\nConstraints: Don't touch the database layer.")
+        #expect(r.restructured)
+    }
+
+    @Test func repairLeavesNamesTheRecognizerChose() {
+        let r = RecognitionRepair.apply([.init(heard: "Aloud", meant: "Claude")], to: "I used Aloud, and then interacted with Claude CLI.")
+        #expect(r.text == "I used Aloud, and then interacted with Claude CLI.")
+        #expect(r.notes == ["repair refused: Aloud -> Claude (name)"])
+        // Lowercase misrecognitions are still fixed, and so is a capitalized first word.
+        #expect(RecognitionRepair.apply([.init(heard: "get hub", meant: "GitHub")], to: "Push it to get hub.").text == "Push it to GitHub.")
+        #expect(RecognitionRepair.apply([.init(heard: "Poll request", meant: "Pull request")], to: "Poll request is ready.").text
+                == "Pull request is ready.")
+    }
+
+    @Test func listNameInTheOpeningSentenceBecomesTheTitle() async {
+        let llm = FakeLLM(name: "groq", reply: "<edited>- Eggs\n- Bacon\n- Bread</edited>")
+        let r = await Cleaner(chain: [.init(llm, timeout: 1)])
+            .clean("Create a grocery list for me. Uh, eggs, bacon, bread.", context: AppContext(bundleID: "net.whatsapp.WhatsApp"))
+        #expect(r.text == "Grocery list:\n- Eggs\n- Bacon\n- Bread")
     }
 }

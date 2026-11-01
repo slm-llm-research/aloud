@@ -350,6 +350,8 @@ struct RepairLiveTests {
         ("I left my cup on the desk next to the keyboard", "cup on the desk", nil),
         ("the book is on pre-order until March", "pre-order", nil),
         ("run the tests in agentd and tell me what failed", "agentd", nil),
+        // From a real session: the window title said "claude" and the repair turned this into "Claude code base".
+        ("hey what is the status on the allowed code base can you help me lint it", "allowed", "claude"),
     ]
 
     static func check(_ llm: CleanupLLM) async {
@@ -359,6 +361,68 @@ struct RepairLiveTests {
             let out = r.text.lowercased()
             #expect(out.contains(want), "\(llm.name): \(heard) -> \(r.text) [\(r.via) \(r.notes)]")
             if let not { #expect(!out.contains(not), "\(llm.name): \(heard) -> \(r.text)") }
+        }
+    }
+
+    @Test(.enabled(if: env["GROQ_API_KEY"] != nil)) func groq() async {
+        await Self.check(OpenAICompatibleLLM.groq(apiKey: Self.env["GROQ_API_KEY"]!))
+    }
+
+    @Test(.enabled(if: env["ANTHROPIC_API_KEY"] != nil)) func haiku() async {
+        await Self.check(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
+    }
+
+    /// "... as a prompt" with several asks: separate Tasks lines and a Done when, from either model.
+    static func checkPrompt(_ llm: CleanupLLM) async {
+        let c = Cleaner(chain: [.init(llm, timeout: 8)])
+        let r = await c.clean("so I want you to scan the entire allowed code base um add more linting tasks and run the "
+                              + "tests and keep going until CI is green don't touch the agent folder as a prompt", context: terminal)
+        let lines = r.text.components(separatedBy: "\n")
+        #expect(lines.first?.hasPrefix("Goal:") == true, "\(llm.name): \(r.text)")
+        #expect(lines.count >= 4, "\(llm.name): \(r.text)")
+        #expect(lines.filter { $0.hasPrefix("- ") }.count >= 2, "\(llm.name): \(r.text)")
+        #expect(r.text.contains("Constraints:"), "\(llm.name): \(r.text)")
+        #expect(r.text.contains("Done when:") || r.text.contains("until CI is green"), "\(llm.name): \(r.text)")
+    }
+
+    @Test(.enabled(if: env["GROQ_API_KEY"] != nil)) func groqPrompt() async {
+        await Self.checkPrompt(OpenAICompatibleLLM.groq(apiKey: Self.env["GROQ_API_KEY"]!))
+    }
+
+    @Test(.enabled(if: env["ANTHROPIC_API_KEY"] != nil)) func haikuPrompt() async {
+        await Self.checkPrompt(AnthropicLLM(apiKey: Self.env["ANTHROPIC_API_KEY"]!))
+    }
+}
+
+/// Claude Code without any cue: requests become prompts, free speech stays sentences.
+/// ALOUD_INTEGRATION=1 GROQ_API_KEY=... ANTHROPIC_API_KEY=... swift test --filter PromptOrFreeSpeechLive
+@Suite("PromptOrFreeSpeechLive", .serialized, .enabled(if: ProcessInfo.processInfo.environment["ALOUD_INTEGRATION"] == "1"))
+struct PromptOrFreeSpeechLiveTests {
+    static let env = ProcessInfo.processInfo.environment
+    static let claude = AppContext(bundleID: "com.apple.Terminal", appName: "Terminal", windowTitle: "aloud — ✳ claude — 120×40")
+
+    /// (heard, laid out as a prompt?, must end with)
+    static let cases: [(String, Bool, String?)] = [
+        // Real dictation: feedback about testing, free speech.
+        ("I used, uh, Aloud, uh, and then interacted with Claude CLI, and I was testing two modes. One where I basically gave it s- a set, set of instructions, uh, with the phrase as a prompt, and the next one where I was just trying to express free speech. Uh, in both the cases, it basically presented the same text as a prompt, uh, in the following fashion.",
+         false, "following fashion."),
+        // Real dictation that ended in "... as a prompt" while talking about the phrase: the words must stay.
+        ("Like, I do not want to s- uh, explicitly tell the system that this is, like, XYZ as a prompt.", false, "as a prompt."),
+        ("add rate limiting to the login endpoint it should allow five attempts per minute per IP don't change the signup flow and it's done when the tests pass",
+         true, nil),
+        ("so I tried the new build this morning and um the login felt a lot faster but the settings page still flickers when you switch tabs I think it's the animation",
+         false, nil),
+        ("fix the redirect in the login handler please", false, nil),
+    ]
+
+    static func check(_ llm: CleanupLLM) async {
+        let c = Cleaner(chain: [.init(llm, timeout: 8)], repair: .always, repairTimeout: 6)
+        for (heard, prompt, ending) in cases {
+            let r = await c.clean(heard, context: claude)
+            let laidOut = r.text.contains("Goal:")
+            #expect(laidOut == prompt, "\(llm.name): \(heard.prefix(60)) -> \(r.text) [\(r.via) \(r.notes)]")
+            if let ending { #expect(r.text.hasSuffix(ending), "\(llm.name): \(r.text)") }
+            #expect(!r.text.contains("I used Claude"), "\(llm.name): \(r.text)")
         }
     }
 

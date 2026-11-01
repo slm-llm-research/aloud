@@ -25,14 +25,34 @@ public enum Prepass {
 
     public static let maxWordsWithoutLLM = 12
 
+    static func removeBetweenCommas(_ text: String, sounds: String) -> String {
+        guard let re = try? NSRegularExpression(pattern: "(?i),\\s*\\b(?:" + sounds + ")\\b,\\s*") else { return text }
+        var out = ""
+        var last = text.startIndex
+        for m in re.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            guard let r = Range(m.range, in: text) else { continue }
+            // The sentence around the match: another comma in it means a comma-separated list.
+            let start = text[..<r.lowerBound].lastIndex(where: { ".!?".contains($0) }).map { text.index(after: $0) } ?? text.startIndex
+            let end = text[r.upperBound...].firstIndex(where: { ".!?".contains($0) }) ?? text.endIndex
+            // Count the commas left once hesitations are gone: "Um, so we should, uh, move" has none,
+            // "I need eggs, uh, meatloaf, bread loaf, and pasta" has two.
+            let sentence = String(text[start..<end]).replacingOccurrences(
+                of: "(?i),?\\s*\\b(?:" + sounds + ")\\b,?", with: "", options: .regularExpression)
+            let isList = sentence.filter { $0 == "," }.count >= 2
+            out += text[last..<r.lowerBound] + (isList ? ", " : " ")
+            last = r.upperBound
+        }
+        return out + text[last...]
+    }
+
     public static func run(_ input: String) -> Result {
         var reasons: [String] = []
         var text = input
 
         let sounds = hesitations.joined(separator: "|")
-        // ", uh," between two words goes with both commas ("should, uh, move" -> "should move").
-        let withoutHesitations = text
-            .replacingOccurrences(of: "(?i),\\s*\\b(" + sounds + ")\\b,\\s*", with: " ", options: .regularExpression)
+        // ", uh," between two words goes with both commas ("should, uh, move" -> "should move"), except
+        // between list items, where one comma is the separator ("eggs, uh, meatloaf, bread").
+        let withoutHesitations = removeBetweenCommas(text, sounds: sounds)
             .replacingOccurrences(of: "(?i)\\b(" + sounds + ")\\b[,.]?\\s*", with: "", options: .regularExpression)
         if withoutHesitations != text { reasons.append("hesitations") }
         text = tidy(withoutHesitations)

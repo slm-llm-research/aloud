@@ -18,7 +18,7 @@ developers who spend their day talking to Claude Code, Codex and Cursor.
 | **Gmail**: "hi Sarah just checking in on the contract let me know if you need anything thanks Shekhar" | Hi Sarah,<br><br>Just checking in on the contract. Let me know if you need anything.<br><br>Thanks,<br>Shekhar |
 | **WhatsApp**: "lol yeah that works for me see you at 5" | Lol, yeah, that works for me. See you at 5. |
 | **ChatGPT**: "what's the difference between a process and a thread" | What's the difference between a process and a thread? *(typed, not answered)* |
-| **Claude Code**: a 40-word request that asks for several things | Goal / Context / Constraints sections, in your own sentences, file names in `backticks` |
+| **Claude Code**: a request that asks for several things, no cue needed | Goal / Tasks / Context / Constraints / Done when, in your own sentences, file names in `backticks` |
 | **A shell prompt**: "git checkout dash b fix slash auth" | `git checkout -b fix/auth` *(typed, not run)* |
 
 ## Results
@@ -198,7 +198,9 @@ so Shift+Tab (for example Claude Code's mode switch) always works.
 
 **Spoken cues** override the app's mode for one dictation. The cue is removed from the text:
 
-- "… **as a prompt**": always lay the request out as Goal / Context / Constraints.
+- "… **as a prompt**": always lay the request out as a prompt. Usually not needed: in a coding agent, requests are
+  laid out automatically and free speech stays as you said it. Talking *about* the phrase ("… that this is X as a
+  prompt") doesn't trigger it.
 - "… **make this a list**": one item per line.
 - Starting with "**grocery list**", "**to-do list**", "**packing list**" …: a titled list.
 
@@ -232,7 +234,7 @@ Each dictation gets a **mode** and an **edit level**:
 | Chat | Slack, Messages, WhatsApp, Discord, Teams | Same, casual tone kept ("lol" stays "lol", "at 5" stays "5") |
 | List | Reminders, Things, or a list cue | One item per line; a correction replaces its item |
 | AI chat | ChatGPT, Claude, Gemini apps and sites | One cleaned prompt, **never answered** |
-| Coding agent | Claude Code / Codex / Aider in a terminal, Cursor, VS Code, Zed, Xcode, the Codex app | Identifiers in `code form`. Multi-part requests are laid out as Goal / Context / Constraints using **your sentences**; thinking aloud stays as paragraphs. |
+| Coding agent | Claude Code / Codex / Aider in a terminal, Cursor, VS Code, Zed, Xcode, the Codex app | Identifiers in `code form`. Aloud decides from what you said: a request (asks, plus constraints, more tasks or a "done when") is laid out as Goal / Tasks / Context / Constraints / Done when using **your sentences**; free speech (thinking aloud, feedback, explaining) stays as your sentences with only punctuation and fillers fixed. A short single ask stays one sentence. |
 | Shell | A terminal at a plain shell prompt | One line, spoken symbols as symbols ("dash b" → `-b`), never run |
 
 **Misheard words.** Before cleanup, a separate pass looks for words the recognizer got wrong. These

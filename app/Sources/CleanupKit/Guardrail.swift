@@ -69,7 +69,9 @@ public enum Guardrail {
 
         let corrected = Prepass.hasCorrectionMarker(input)
         let f = Fidelity.compare(input: input, output: out, allowed: terms)
-        let allowedMissing = corrected ? max(3, f.inputCount / 4) : max(2, f.inputCount * 12 / 100)
+        // Laying out a prompt drops framing words ("so I want you to", "keep going until" -> "Done when:").
+        let allowedMissing = corrected ? max(3, f.inputCount / 4)
+            : structure ? max(4, f.inputCount / 5) : max(2, f.inputCount * 12 / 100)
         if f.missing.count > allowedMissing {
             return .reject("dropped words: \(f.missing.prefix(5).joined(separator: ", "))")
         }

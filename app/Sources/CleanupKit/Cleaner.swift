@@ -25,9 +25,10 @@ public struct Cleaner: Sendable {
         public var mode: DictationMode = .prose
     }
 
-    /// Coding-agent utterances at least this long may be organized into labelled sections, if the model
-    /// finds a multi-part request (thinking aloud stays as paragraphs).
-    public static let restructureMinWords = 40
+    /// Coding-agent utterances at least this long go to the model to decide: a request is laid out as
+    /// a prompt, free speech (thinking aloud, feedback, explaining) is kept as the speaker's sentences.
+    /// Shorter ones are one-line asks and stay a sentence.
+    public static let restructureMinWords = 15
 
     let chain: [Step]
     let dictionary: PersonalDictionary
@@ -92,8 +93,7 @@ public struct Cleaner: Sendable {
         var fixed = route.transcript
         var repairNotes: [String] = []
         if shouldRepair(fixed, mode: mode, context: context) {
-            let allTitleTerms = AppProfiles.terms(fromWindowTitle: context.windowTitle)
-            let r = await RecognitionRepair.run(fixed, terms: dictionary.terms + allTitleTerms, context: context,
+            let r = await RecognitionRepair.run(fixed, terms: dictionary.terms, context: context,
                                                 chain: chain, timeout: repairTimeout)
             fixed = r.text
             repairNotes = r.notes
@@ -131,17 +131,35 @@ public struct Cleaner: Sendable {
                 let raw = try await step.llm.complete(system: system, user: user, timeout: timeout)
                 let (edited, outside) = OutputHygiene.extractEdited(raw)
                 let out = OutputHygiene.finish(edited, mode: mode)
-                var verdict = Guardrail.check(input: modelInput, output: out, level: level, terms: terms, outside: outside)
+                // When the model chose to keep free speech as sentences, hold it to light cleanup's
+                // stricter word checks; the looser structure checks are only for a laid-out prompt or list.
+                let checkLevel: EditLevel = mayStructure && !route.forceStructure && mode == .codingAgent && !Self.looksStructured(out)
+                    ? .light : level
+                var verdict = Guardrail.check(input: modelInput, output: out, level: checkLevel, terms: terms, outside: outside)
                 // A list (by app or by cue) that came back as a paragraph: the next model may do better,
                 // and the fallback reshapes it without the model.
                 if verdict == .accept, mode == .list, !Self.looksStructured(out) { verdict = .reject("not a list") }
                 switch verdict {
                 case .accept:
                     var out = out
+                    // "Grocery list ..." said, but the model listed only the items: put the name back as the title.
+                    if mode == .list, let lead = Self.listLeadIn(fixed), !out.lowercased().contains(lead) {
+                        out = lead.prefix(1).uppercased() + lead.dropFirst() + ":\n" + out
+                    }
                     // "... as a prompt" asks for the layout; when the model kept a paragraph, sort the
                     // speaker's sentences under the labels ourselves.
                     if route.forceStructure, mode == .codingAgent, !Self.looksStructured(out) {
                         out = OutputHygiene.promptShape(out)
+                    }
+                    // A clear request kept as sentences (the faster model often does): lay out the
+                    // model's own sentences. Free speech doesn't open as a request, so it isn't touched.
+                    if mayStructure, !route.forceStructure, mode == .codingAgent, !Self.looksStructured(out),
+                       Self.looksLikeInstructions(fixed) {
+                        let shaped = OutputHygiene.promptShape(out)
+                        if Self.looksStructured(shaped) || shaped.contains("\n") {
+                            out = shaped
+                            notes.append("laid out as instructions")
+                        }
                     }
                     let structured = Self.looksStructured(out) && !Self.looksStructured(fixed)
                     let text = structured ? Self.dropAppOnlyContext(out, context: context, spoken: fixed) : out
@@ -154,7 +172,9 @@ public struct Cleaner: Sendable {
                 notes.append("\(step.llm.name) failed: \(error)")
             }
         }
-        return Result(text: fallback, via: "fallback", notes: notes, profile: profile, mode: mode)
+        // "... as a prompt" still gets its layout when every model failed or was rejected.
+        let shaped = route.forceStructure && mode == .codingAgent ? OutputHygiene.promptShape(fallback) : fallback
+        return Result(text: shaped, via: "fallback", notes: notes, restructured: shaped != fallback, profile: profile, mode: mode)
     }
 
     /// A shell command only needs the model for spoken symbols ("dash b") or corrections, not for a
@@ -171,10 +191,31 @@ public struct Cleaner: Sendable {
         return spokenSymbols || pre.reasons.contains { $0 != "hesitations" && $0 != "no final punctuation" && $0 != "long" }
     }
 
+    /// Opens as a request to the agent ("I want you to ...", "can you ...", a command) and adds a
+    /// constraint, a check or a further step. Thinking aloud ("so I tried the build ...") doesn't open
+    /// that way, which is what keeps free speech as sentences.
+    static func looksLikeInstructions(_ s: String) -> Bool {
+        var t = s.lowercased()
+        let filler = "^(?:(?:so|okay|ok|um|uh|hey|basically|alright|right|and)[,.]?\\s+)+"
+        t = t.replacingOccurrences(of: filler, with: "", options: .regularExpression)
+        let opener = "^(?:i want you to|i need you to|i'd like you to|can you|could you|would you|please|"
+            + "(?:fix|add|write|create|build|run|check|update|remove|change|refactor|implement|test|review|move|rename|"
+            + "scan|lint|clean up|set up|migrate|look at|figure out|make)\\b)"
+        guard t.range(of: opener, options: .regularExpression) != nil else { return false }
+        let more = "\\b(?:don't|do not|never|make sure|keep|only|without|and then|then|also|until|done when)\\b"
+        return t.range(of: more, options: .regularExpression) != nil && Prepass.wordCount(s) >= restructureMinWords
+    }
+
+    /// The list name the speaker started with ("grocery list"), lowercased.
+    static func listLeadIn(_ s: String) -> String? {
+        let first = s.lowercased().split(whereSeparator: { ".!?\n".contains($0) }).first.map(String.init) ?? ""
+        return ModeRouter.listLeadIns.first { first.contains($0) }
+    }
+
     /// Output organized into labelled sections or a list.
     static func looksStructured(_ s: String) -> Bool {
         let lines = s.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
-        let labels = lines.filter { l in ["goal:", "context:", "constraints:", "requirements:", "done when:"]
+        let labels = lines.filter { l in ["goal:", "tasks:", "context:", "constraints:", "requirements:", "done when:"]
             .contains { l.lowercased().hasPrefix($0) } }
         let bullets = lines.filter { $0.hasPrefix("- ") || $0.hasPrefix("* ") || $0.range(of: "^\\d+[.)] ", options: .regularExpression) != nil }
         return labels.count >= 2 || bullets.count >= 2
@@ -258,26 +299,44 @@ public enum Prompts {
             let organize: String
             if forced {
                 organize = """
-                The speaker asked for a prompt: arrange their own sentences under these labels, omitting any label they gave no material for:
-                Goal: <the ask>
+                The speaker asked for a prompt: arrange their own sentences under these labels, each label on its own line, omitting any label they gave no material for:
+                Goal: <the main ask, or their question>
+                Tasks: <only when they asked for two or more things: one "- " line per thing, in their words>
                 Context: <what they observed: files, errors, reasons>
                 Constraints: <don'ts, scope limits, style>
-                Done when: <only if they stated a check>
+                Done when: <only if they stated a check, e.g. "until CI is green">
+                Example:
+                <transcript>check the status of the payments service, scan it for unused imports, add a lint step to CI and keep going until CI is green, don't touch the billing module</transcript>
+                <edited>Goal: Check the status of the payments service.
+                Tasks:
+                - Scan it for unused imports.
+                - Add a lint step to CI.
+                Constraints: Don't touch the billing module.
+                Done when: CI is green.</edited>
                 """
             } else if structure {
                 organize = """
-                Decide from the content:
-                - If the speaker is thinking aloud, explaining, reporting, discussing, or asking a question: keep it as paragraphs, exactly like plain cleanup. No labels.
-                - If it asks the agent to do two or more things (for example: fix X, add tests, don't touch Y), it is a multi-part request: arrange the speaker's own sentences under these labels, omitting any label they gave no material for:
+                First decide what the speaker is doing. Do not wait for them to say "as a prompt"; decide from the content.
+                FREE SPEECH: thinking aloud, explaining, describing what happened, giving feedback, reporting results, discussing options, or asking a how/why question. Keep it as their sentences and paragraphs, exactly like plain cleanup: fix punctuation and grammar slips, remove fillers, keep every other word. No labels, no lists. A single "can you look into it" at the end of a story is still free speech.
+                INSTRUCTIONS: the main purpose is to get the agent to do work, with two or more of: separate tasks, background (files, errors, reasons), constraints (don't / only / keep / make sure), or a completion check. Lay it out as a prompt. Requests phrased as "I want you to ...", "can you ..." or as commands are INSTRUCTIONS when they add a constraint, another task or a check. A single short ask ("fix the login redirect") stays one clean sentence.
+                Only when it is genuinely unclear, prefer FREE SPEECH.
+                For INSTRUCTIONS, arrange the speaker's own sentences under these labels, each label on its own line, omitting any label they gave no material for:
                 Goal: <the main ask>
+                Tasks: <only for two or more separate asks: one "- " line per thing, in their words>
                 Context: <what they observed: files, errors, reasons>
-                Constraints: <don'ts, scope limits, style, extra asks>
+                Constraints: <don'ts, scope limits, style>
                 Done when: <only if they stated a check>
                 Example:
                 <transcript>okay so in auth check dot ts the is login error flag is always false um I think because the refresh handler swallows the exception, don't touch the UI layer, just fix the handler and add a test</transcript>
                 <edited>Goal: Just fix the handler and add a test.
                 Context: In `authCheck.ts`, the `isLoginError` flag is always false. I think it's because the refresh handler swallows the exception.
                 Constraints: Don't touch the UI layer.</edited>
+                <transcript>migrate the user table to the new schema keep the old columns for now and it's done when the migration test passes</transcript>
+                <edited>Goal: Migrate the user table to the new schema.
+                Constraints: Keep the old columns for now.
+                Done when: The migration test passes.</edited>
+                <transcript>so I tried the new build this morning and um the login felt a lot faster but the settings page still flickers when you switch tabs, I think it's the animation, maybe we can look at it later</transcript>
+                <edited>So I tried the new build this morning, and the login felt a lot faster, but the settings page still flickers when you switch tabs. I think it's the animation. Maybe we can look at it later.</edited>
                 """
             } else {
                 organize = "Keep it as one clean paragraph in the speaker's words. No labels or headings."
