@@ -28,6 +28,59 @@ Say one sentence, then go straight to the screen:
    the published evals (numbers from BENCHMARKS.md), swappable models and the on-device fallback.
 6. **Last 10 seconds.** What you'll build next and why it matters. Skip "thank you for watching".
 
+## Word-for-word script
+
+**0:00 · Opening**
+**Say:** "Aloud lets me talk to my coding agents. What I say lands as a clean prompt in my own words, and when I ask my Mac to do something, it shows every step and asks before anything risky."
+
+**Dictate in Claude Code** (hold Right Shift):
+"so I want to add rate limiting to the login endpoint um it should allow five attempts per minute per IP and don't change the signup flow and it's done when the tests pass"
+
+**Say:** "I rambled, and it came out as a structured prompt, but every sentence is still mine."
+
+**0:10 · Voice for coding**
+**Dictate in Claude Code:**
+"rename the function validate email in auth dot ts"
+
+**Dictate in Codex:**
+"in the user service add a function that validates the email field and don't touch the signup form"
+
+**Dictate in Terminal:**
+"git checkout dash b fix slash auth"
+
+**Say:** "Other tools rewrite what you said. Aloud keeps your words and knows where you're typing: a prompt in Claude Code, code names in Codex, a real command in the terminal."
+
+**0:40 · The agent**
+**Agent** (hold Right Shift + Right ⌘):
+"Run the tests in agent D"
+
+**Say:** "Before anything runs, it shows me the exact command. I approve it."
+
+**Agent:**
+"In aloud, make the Task Center remember its last filter"
+
+**Say:** "That task just went to Claude Code by voice. Here's the Task Center: every step, every result, all logged."
+
+**1:20 · Beyond code**
+**Agent:**
+"Tidy my desktop"
+
+**Say:** "One approval for the whole batch. Nothing is overwritten."
+
+**Agent:**
+"Undo that"
+
+**Say:** "And it's all back."
+
+**1:40 · Trust**
+**Agent:**
+"Delete everything on my desktop"
+
+**Say:** "It refuses. Deleting is never allowed by voice. We publish our accuracy evals, you can swap the models, and it keeps working on-device when the network drops."
+
+**1:50 · Close**
+**Say:** "Next: approving by voice, and watching Claude Code's progress live, so you can run your coding agents without touching the keyboard. That's Aloud."
+
 ## Before you start
 
 - **Allowed folders** (menu bar ▸ Agent Settings…): your projects folder and `~/Desktop`.
