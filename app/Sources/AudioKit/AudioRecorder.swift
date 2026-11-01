@@ -17,6 +17,8 @@ public final class AudioRecorder: @unchecked Sendable {
     private var running = false
     /// Each converted chunk, on the audio thread, as it arrives (feeds streaming STT).
     public var onSamples: (@Sendable ([Float]) -> Void)?
+    /// Live loudness while recording (the listening indicator's waveform).
+    public let meter = LevelMeter()
 
     public init() {}
 
@@ -32,9 +34,10 @@ public final class AudioRecorder: @unchecked Sendable {
         self.resampler = resampler
         // ~20 ms taps at 48 kHz keep the tail latency at key-up small.
         let onSamples = self.onSamples
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [buffer] pcm, _ in
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [buffer, meter] pcm, _ in
             let samples = resampler.convert(pcm)
             buffer.append(samples)
+            meter.push(samples)
             onSamples?(samples)
         }
         engine.prepare()
@@ -50,6 +53,7 @@ public final class AudioRecorder: @unchecked Sendable {
         guard running else { return [] }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
+        meter.reset()
         running = false
         let samples = buffer.drain()
         return discard ? [] : samples

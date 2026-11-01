@@ -179,6 +179,8 @@ npm test
 
 Restart Aloud. The menu's agent line shows that it's connected. Then open **Agent Settings…** and add the
 folders the agent may work in. **By default it has none**, so it can't touch anything until you choose.
+To let it tidy your Desktop, add `~/Desktop`; the first time it looks there, macOS asks whether Aloud may
+access your Desktop folder. Click Allow.
 
 ## Using it
 
@@ -189,7 +191,9 @@ folders the agent may work in. **By default it has none**, so it can't touch any
 | **Esc** while recording | Cancel; nothing is typed |
 | Hold **Right Shift**, add **Right ⌘**, talk, release | Task mode: the sentence goes to the agent instead of being typed |
 
-Right Shift alone types nothing, so holding it never interferes with typing. Tab is never intercepted,
+While the mic is open, a pill at the bottom of the screen shows a live waveform that moves with your
+voice (white for dictation, orange for an agent task) and settles to a slow pulse when you pause, so you
+can see it's hearing you. Right Shift alone types nothing, so holding it never interferes with typing. Tab is never intercepted,
 so Shift+Tab (for example Claude Code's mode switch) always works.
 
 **Spoken cues** override the app's mode for one dictation. The cue is removed from the text:
@@ -248,7 +252,7 @@ approval first.
 
 **The agent island.** While a task runs, a small capsule at the top of the screen (hanging from the
 notch on MacBooks) shows what the agent is doing: the step in progress, "2/4" from its plan, and the
-elapsed time. Hover it to see what it heard, the plan as a checklist, each tool step with its result
+elapsed time. Rest the pointer on it to see what it heard, the plan as a checklist, each tool step with its result
 and timing, and a stop button. When a step needs you, the island turns into an approval card in place
 with a risk badge, a plain title ("Run git status in aloud"), the exact command or a coloured diff,
 and a countdown to the automatic deny. It never takes focus from the app you're in; click the card and
@@ -263,6 +267,8 @@ Past tasks are rebuilt from the audit log, so they survive restarts.
 |---|---|---|
 | `list_dir`, `find_files`, `find_folders`, `search_files`, `read_file` | Read inside allowed folders | No |
 | `write_file` | Write inside allowed folders | Yes, with a preview |
+| `organize_files` | Move a batch of files and folders into folders ("organize my desktop"); never overwrites or deletes | Yes, once for the whole batch, grouped by destination |
+| `undo_organize` | Put the last organized batch back ("undo that") and remove the folders it created if empty | Yes |
 | `run_shell` | Run allowlisted programs (`git`, `npm`, `swift`, `pytest`, …) in an allowed folder; every program in a pipeline must be allowlisted, no command substitution or redirection | Yes |
 | `claude_code_task` | Hand a coding task to Claude Code in an allowed repo (edits only, no shell or web) | Yes |
 | `open_app`, `open_url` | Open an application or a web page | Yes |

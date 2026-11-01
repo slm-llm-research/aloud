@@ -93,4 +93,15 @@ struct IslandRenderTests {
         try render(TaskCenterView(store: s, model: model, actions: IslandActions()).frame(width: 900, height: 520),
                    "task-center-past")
     }
+
+    @Test func renderListeningPill() throws {
+        for (name, phase, level) in [("hud-dictation-loud", ListeningHUDModel.Phase.listening(.dictation), Float(0.8)),
+                                     ("hud-dictation-quiet", .listening(.dictation), 0),
+                                     ("hud-agent", .listening(.task), 0.6),
+                                     ("hud-transcribing", .transcribing, 0)] {
+            let model = ListeningHUDModel()
+            model.phase = phase
+            try render(ListeningHUDView(model: model, level: { level }), name)
+        }
+    }
 }

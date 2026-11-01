@@ -93,7 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         agent = AgentController(hud: hud)
         agent.onChange = { [weak self] in self?.refreshMenu() }
-        session = Session(audio: AudioRecorder(), transcriber: ParakeetAdapter(engine: parakeet),
+        let recorder = AudioRecorder()
+        hud.meter = recorder.meter
+        session = Session(audio: recorder, transcriber: ParakeetAdapter(engine: parakeet),
                           inserter: TextInserter(), streaming: scribe, cleaner: cleaner, tasks: agent,
                           contextProvider: { FocusedApp.current() })
         session.onStatus = { [weak self] status in

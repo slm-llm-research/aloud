@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -56,6 +56,13 @@ describe("gated tools", () => {
     expect(listing).toContain("notes.md");
     expect(content).toBe("hello");
     expect(env.requests).toHaveLength(0);
+  });
+
+  it("lists with sizes and dates on request", async () => {
+    const env = setup();
+    writeFileSync(path.join(env.root, "a.txt"), "x".repeat(2048));
+    const [listing] = await run(env, [["list_dir", { path: env.root, details: true }]]);
+    expect(listing).toMatch(/a\.txt\t2 KB\tmodified \d{4}-\d{2}-\d{2}/);
   });
 
   it("find_files counts by pattern recursively, skipping node_modules, without asking", async () => {
@@ -366,5 +373,74 @@ describe("task history (Task Center)", () => {
     env.audit.write("task.start", { taskId: "x", utterance: "half" });
     expect(readHistory(env.cfg.auditPath)[0]!.state).toBe("interrupted");
     expect(readHistory(path.join(env.root, "nope.jsonl"))).toEqual([]);
+  });
+});
+
+describe("organize_files (desktop demo)", () => {
+  function desktop() {
+    const env = setup();
+    const d = path.join(env.root, "Desktop");
+    mkdirSync(path.join(d, "Projects"), { recursive: true });
+    for (const f of ["Screenshot 1.png", "Screenshot 2.png", "invoice.pdf", "notes.txt"]) writeFileSync(path.join(d, f), f);
+    return { env, d };
+  }
+
+  it("moves a batch after one approval and shows it grouped", async () => {
+    const { env, d } = desktop();
+    const [out] = await run(env, [["organize_files", { moves: [
+      { from: path.join(d, "Screenshot 1.png"), toFolder: path.join(d, "Screenshots") },
+      { from: path.join(d, "Screenshot 2.png"), toFolder: path.join(d, "Screenshots") },
+      { from: path.join(d, "invoice.pdf"), toFolder: path.join(d, "Documents") },
+    ] }]]);
+    expect(env.requests).toHaveLength(1);
+    expect(env.requests[0]!.preview).toContain("Screenshots/ (new): Screenshot 1.png, Screenshot 2.png");
+    expect(env.requests[0]!.title).toBe("Organize 3 items in Desktop");
+    expect(out).toContain("Moved 3 item(s)");
+    expect(existsSync(path.join(d, "Screenshots", "Screenshot 2.png"))).toBe(true);
+    expect(existsSync(path.join(d, "Documents", "invoice.pdf"))).toBe(true);
+    expect(existsSync(path.join(d, "notes.txt"))).toBe(true);
+  });
+
+  it("never overwrites, and refuses paths outside the allowed folders", async () => {
+    const { env, d } = desktop();
+    mkdirSync(path.join(d, "Docs"));
+    writeFileSync(path.join(d, "Docs", "notes.txt"), "other");
+    const [out] = await run(env, [["organize_files", { moves: [
+      { from: path.join(d, "notes.txt"), toFolder: path.join(d, "Docs") },
+      { from: path.join(d, "invoice.pdf"), toFolder: "/tmp/elsewhere" },
+      { from: path.join(d, "Screenshot 1.png"), toFolder: path.join(d, "Docs") },
+    ] }]]);
+    expect(out).toContain("Moved 1 item(s)");
+    expect(out).toContain("not overwritten");
+    expect(out).toContain("outside the allowed folders");
+    expect(readFileSync(path.join(d, "Docs", "notes.txt"), "utf8")).toBe("other");
+    expect(existsSync(path.join(d, "invoice.pdf"))).toBe(true);
+  });
+
+  it("denied means nothing moves", async () => {
+    const env0 = desktop();
+    const env = { ...env0.env };
+    const denyEnv = setup(() => "deny");
+    denyEnv.cfg.allowedRoots = env.cfg.allowedRoots;
+    const [out] = await run(denyEnv, [["organize_files", { moves: [{ from: path.join(env0.d, "invoice.pdf"), toFolder: path.join(env0.d, "PDFs") }] }]]);
+    expect(out).toMatch(/declined/i);
+    expect(existsSync(path.join(env0.d, "invoice.pdf"))).toBe(true);
+    expect(existsSync(path.join(env0.d, "PDFs"))).toBe(false);
+  });
+
+  it("undo puts everything back and removes the folders it made", async () => {
+    const { env, d } = desktop();
+    await run(env, [["organize_files", { moves: [
+      { from: path.join(d, "Screenshot 1.png"), toFolder: path.join(d, "Screenshots") },
+      { from: path.join(d, "Projects"), toFolder: path.join(d, "Archive") },
+    ] }]]);
+    expect(existsSync(path.join(d, "Archive", "Projects"))).toBe(true);
+    const [out] = await run(env, [["undo_organize", {}]]);
+    expect(out).toContain("Put back 2 item(s) and removed 2 empty folder(s)");
+    expect(existsSync(path.join(d, "Screenshot 1.png"))).toBe(true);
+    expect(existsSync(path.join(d, "Projects"))).toBe(true);
+    expect(existsSync(path.join(d, "Screenshots"))).toBe(false);
+    const [again] = await run(env, [["undo_organize", {}]]);
+    expect(again).toMatch(/no organize to undo/);
   });
 });

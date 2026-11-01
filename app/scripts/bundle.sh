@@ -1,8 +1,8 @@
 #!/bin/bash
 # Builds Aloud.app (release) into app/build/ and signs it.
 #
-#   scripts/bundle.sh            # ad-hoc signature
-#   SIGN_ID="Murmur Dev Signing" scripts/bundle.sh   # a stable identity, so macOS keeps permissions across rebuilds
+#   scripts/bundle.sh            # signs with the identity from make-signing-cert.sh, else ad-hoc
+#   SIGN_ID="<identity>" scripts/bundle.sh   # force a specific identity (normally found automatically)
 #
 # Ad-hoc signing changes the app's identity on every build, so macOS asks for Accessibility /
 # Input Monitoring again after each rebuild. A stable SIGN_ID avoids that (PLAN.md §12).
@@ -39,23 +39,26 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # Prefer the stable identity from scripts/make-signing-cert.sh (in its own keychain, unlocked here
-# with its fixed password, so no prompts); fall back to ad-hoc.
-KC="$HOME/Library/Keychains/murmur-signing.keychain-db"
+# with its fixed password, so no prompts); fall back to ad-hoc. Macs set up before the rename have
+# it under its older label; it's the same kind of local identity and keeps their permissions.
 KEYCHAIN_ARGS=()
-if [ -z "${SIGN_ID:-}" ] && [ -f "$KC" ]; then
-  security unlock-keychain -p "murmur-dev-signing" "$KC"
+for CAND in "aloud-signing|aloud-dev-signing|Aloud Dev Signing" "murmur-signing|murmur-dev-signing|Murmur Dev Signing"; do
+  IFS='|' read -r KC_NAME KC_PASS ID_NAME <<<"$CAND"
+  KC="$HOME/Library/Keychains/$KC_NAME.keychain-db"
+  [ -z "${SIGN_ID:-}" ] && [ -f "$KC" ] || continue
+  security unlock-keychain -p "$KC_PASS" "$KC"
   # codesign only finds identities in keychains on the user search list; append ours (idempotent,
   # existing keychains are kept in their order).
-  if ! security list-keychains -d user | grep -q "murmur-signing.keychain-db"; then
+  if ! security list-keychains -d user | grep -q "$KC_NAME.keychain-db"; then
     CURRENT=$(security list-keychains -d user | sed -e 's/^ *"//' -e 's/" *$//')
     # shellcheck disable=SC2086
     security list-keychains -d user -s $CURRENT "$KC"
   fi
-  if security find-identity -p codesigning "$KC" | grep -q "Murmur Dev Signing"; then
-    SIGN_ID="Murmur Dev Signing"
+  if security find-identity -p codesigning "$KC" | grep -q "$ID_NAME"; then
+    SIGN_ID="$ID_NAME"
     KEYCHAIN_ARGS=(--keychain "$KC")
   fi
-fi
+done
 echo "Signing with: ${SIGN_ID:-ad-hoc (permissions reset on every rebuild)}"
 codesign --force --deep --options runtime \
   --entitlements scripts/Aloud.entitlements \

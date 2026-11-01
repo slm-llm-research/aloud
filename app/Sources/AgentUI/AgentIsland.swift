@@ -32,6 +32,14 @@ public final class AgentIsland {
     private let panel: IslandPanel
     private let host: NSHostingView<IslandRoot>
     private let state = ViewState()
+    /// Hover is read from the pointer position, not SwiftUI's onHover: resizing the panel resets its
+    /// tracking areas, which reported exit/enter on every resize and made the drawer open and close
+    /// in a loop under a still pointer.
+    private var hoverGate = HoverGate()
+    private var hoverTimer: Timer?
+    /// Where the island is (or is heading, while a shrink waits for its animation to finish).
+    private var targetFrame: NSRect = .zero
+    private var pendingShrink: DispatchWorkItem?
 
     public init(store: TaskStore) {
         self.store = store
@@ -92,12 +100,6 @@ public final class AgentIsland {
             if self?.state.pinnedTask == id { self?.state.pinnedTask = nil }
             self?.layout()
         }
-        actions.hover = { [weak self] inside in
-            guard let self else { return }
-            self.state.hovering = inside
-            if !inside { self.state.pinnedTask = nil }
-            self.layout()
-        }
         actions.becomeKey = { [weak self] in self?.panel.makeKey() }
         actions.openCenter = { [weak self] id in
             self?.state.pinnedTask = nil
@@ -131,6 +133,8 @@ public final class AgentIsland {
     private func layout() {
         let visible = IslandRoot.content(store: store, state: state) != .hidden
         guard visible, let screen else {
+            pendingShrink?.cancel()
+            stopHoverTracking()
             if panel.isVisible { panel.orderOut(nil) }
             return
         }
@@ -140,10 +144,74 @@ public final class AgentIsland {
         // With a notch the island hangs from the top edge (its top padding covers the notch);
         // otherwise it floats just under the menu bar.
         let top = notchHeight > 0 ? f.maxY : screen.visibleFrame.maxY - 6
-        panel.setFrame(NSRect(x: f.midX - size.width / 2, y: top - size.height, width: size.width, height: size.height),
-                       display: true)
+        let target = NSRect(x: f.midX - size.width / 2, y: top - size.height, width: size.width, height: size.height)
+        if target != targetFrame || !panel.isVisible {
+            targetFrame = target
+            pendingShrink?.cancel()
+            let current = panel.frame
+            if panel.isVisible, target.width < current.width || target.height < current.height {
+                // Grow the window now, shrink it after the content's spring animation: shrinking
+                // first would cut the animating content off mid-way (a visible flash).
+                let grown = target.union(current)
+                if grown != current { panel.setFrame(grown, display: true) }
+                let work = DispatchWorkItem { [weak self] in
+                    guard let self, self.targetFrame == target else { return }
+                    self.panel.setFrame(target, display: true)
+                }
+                pendingShrink = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + IslandRoot.animationSeconds + 0.05, execute: work)
+            } else {
+                panel.setFrame(target, display: true)
+            }
+        }
         if !panel.isVisible { panel.orderFrontRegardless() }
+        startHoverTracking()
         if store.currentApproval == nil, panel.isKeyWindow { panel.resignKey() }
+    }
+
+    private func startHoverTracking() {
+        guard hoverTimer == nil else { return }
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.pollHover() }
+        }
+        RunLoop.main.add(timer, forMode: .common)  // keeps polling while a menu is tracking
+        hoverTimer = timer
+    }
+
+    private func stopHoverTracking() {
+        hoverTimer?.invalidate()
+        hoverTimer = nil
+        hoverGate = HoverGate()
+        if state.hovering { state.hovering = false }
+    }
+
+    private func pollHover() {
+        // A little slack around the island once it's open, so brushing its edge doesn't close it.
+        let area = state.hovering ? targetFrame.insetBy(dx: -8, dy: -8) : targetFrame
+        guard let hovering = hoverGate.update(inside: area.contains(NSEvent.mouseLocation),
+                                              now: ProcessInfo.processInfo.systemUptime) else { return }
+        state.hovering = hovering
+        if !hovering { state.pinnedTask = nil }
+    }
+}
+
+/// Debounces hover so the drawer changes state only when the pointer has settled: it opens after
+/// the pointer has been over the island briefly (not when it just passes by) and closes after it
+/// has been away a moment longer.
+struct HoverGate {
+    var enterDelay: TimeInterval = 0.12
+    var exitDelay: TimeInterval = 0.35
+    private(set) var hovering = false
+    private var since: TimeInterval?
+
+    /// Returns the new hover state when it changes, nil otherwise.
+    mutating func update(inside: Bool, now: TimeInterval) -> Bool? {
+        guard inside != hovering else { since = nil; return nil }
+        if since == nil { since = now }
+        guard now - since! >= (inside ? enterDelay : exitDelay) else { return nil }
+        hovering = inside
+        since = nil
+        return hovering
     }
 }
 
@@ -157,7 +225,6 @@ struct IslandActions {
     var decide: (AgentProtocol.ApprovalRequest, Bool) -> Void = { _, _ in }
     var stop: (String) -> Void = { _ in }
     var dismiss: (String) -> Void = { _ in }
-    var hover: (Bool) -> Void = { _ in }
     var becomeKey: () -> Void = {}
     var openCenter: (String) -> Void = { _ in }
 }
@@ -211,9 +278,13 @@ struct IslandRoot: View {
         .overlay(IslandShape(notch: notch > 0).stroke(Color.white.opacity(notch > 0 ? 0 : 0.12), lineWidth: 0.5))
         .environment(\.colorScheme, .dark)
         .fixedSize()
-        .onHover { actions.hover($0) }
-        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .spring(duration: 0.3), value: content)
+        .animation(NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .spring(duration: Self.animationSeconds), value: content)
+        // Pinned to the top: while a shrink waits for the animation, the window is briefly taller
+        // than the content, which would otherwise be centred in it and jump down.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
+
+    static let animationSeconds = 0.3
 }
 
 /// A capsule, or (hanging from a notch) a shape with square top corners and round bottom ones.

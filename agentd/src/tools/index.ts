@@ -5,6 +5,7 @@ import type { AgentConfig } from "../config.js";
 import { confine, PathOutsideRootsError } from "../paths.js";
 import { checkCommand } from "../shellPolicy.js";
 import { clip, defineTool, oneLine, tilde, type ToolContract } from "./contract.js";
+import { organizeFiles, undoOrganize } from "./organize.js";
 import { runProcess } from "./process.js";
 
 function confined(p: string, cfg: AgentConfig): string | null {
@@ -58,8 +59,13 @@ export const openUrl = defineTool({
 
 export const listDir = defineTool({
   name: "list_dir",
-  description: "List the entries of a folder (inside the allowed folders).",
-  input: z.object({ path: z.string().describe("Folder path; ~ and paths relative to the first allowed folder work") }),
+  description:
+    "List the entries of a folder (inside the allowed folders). With details: true, each line also has the " +
+    "size and last-modified date (use it to sort or group by age).",
+  input: z.object({
+    path: z.string().describe("Folder path; ~ and paths relative to the first allowed folder work"),
+    details: z.boolean().default(false),
+  }),
   effects: () => ["read_local"],
   title: (i) => `List ${tilde(i.path)}`,
   preview: (i) => `List ${i.path}`,
@@ -68,11 +74,28 @@ export const listDir = defineTool({
     const dir = confine(i.path, ctx.cfg.allowedRoots);
     const entries = readdirSync(dir, { withFileTypes: true })
       .filter((e) => !e.name.startsWith("."))
-      .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
+      .map((e) => {
+        const name = e.isDirectory() ? `${e.name}/` : e.name;
+        if (!i.details) return name;
+        try {
+          const st = statSync(path.join(dir, e.name));
+          const size = e.isDirectory() ? "folder" : humanSize(st.size);
+          return `${name}\t${size}\tmodified ${st.mtime.toISOString().slice(0, 10)}`;
+        } catch {
+          return name;
+        }
+      })
       .sort();
     return clip(`${dir}:\n${entries.join("\n")}`);
   },
 });
+
+function humanSize(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 ** 2) return `${(n / 1024).toFixed(0)} KB`;
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  return `${(n / 1024 ** 3).toFixed(1)} GB`;
+}
 
 /** "*.md" / "test_*.py" -> RegExp on the file name (only * and ? wildcards). */
 export function globToRegExp(glob: string): RegExp {
@@ -297,5 +320,6 @@ export const claudeCodeTask = defineTool({
 });
 
 export const ALL_TOOLS: ToolContract[] = [
-  openApp, openUrl, listDir, findFolders, findFiles, searchFiles, readFile, writeFile, runShell, claudeCodeTask,
+  openApp, openUrl, listDir, findFolders, findFiles, searchFiles, readFile, writeFile, organizeFiles, undoOrganize,
+  runShell, claudeCodeTask,
 ] as ToolContract[];

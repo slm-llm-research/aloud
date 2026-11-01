@@ -12,7 +12,7 @@ open build/Aloud.app
 
 On first launch, macOS asks for the **Microphone**, **Input Monitoring** and **Accessibility** permissions. Grant all three in System Settings → Privacy & Security. Aloud picks the permissions up within a few seconds; the menu-bar ⏦ icon's menu shows "Ready".
 
-Ad-hoc signing (the default) changes the app's identity on every rebuild, so macOS asks again after each `bundle.sh`. To avoid that, use `SIGN_ID="<your identity>" scripts/bundle.sh`.
+Without a stable signing identity, every rebuild looks like a new app to macOS, so it asks for the permissions again. Run `scripts/make-signing-cert.sh` once: it makes a local "Aloud Dev Signing" identity in its own keychain, and `bundle.sh` uses it automatically from then on.
 
 ## Use
 
