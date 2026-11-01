@@ -128,7 +128,7 @@ def layout_ok(fmt, expected, typed):
         return typed.strip().lower().startswith("goal:") and want <= got
     if fmt == "paragraph":
         return not bullets and not re.search(r"(?im)^(goal|context|constraints):", typed)
-    return True
+    return True  # "any": the layout is the model's call; only the words are checked
 
 
 def parse_mode(cleanup):

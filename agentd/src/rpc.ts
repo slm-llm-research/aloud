@@ -11,7 +11,9 @@ import type { ApprovalBroker, ApprovalDecision } from "./approvals.js";
  *
  * Requests (app -> agentd): ping, task.submit {utterance, context?}, task.cancel {taskId},
  *   task.cancelAll, approval.respond {stepId, decision}
- * Notifications (agentd -> app): task.started, task.progress, approval.request, task.result, task.error
+ * Notifications (agentd -> app): task.started, task.progress, approval.request, task.result, task.error,
+ *   and for the timeline: task.plan {steps}, task.step {stepId, title, risk, status, ...},
+ *   task.note {text}, task.metrics {inputTokens, outputTokens, turns}
  */
 export class AgentServer {
   private server?: net.Server;
@@ -119,7 +121,7 @@ export class AgentServer {
   private async execute(taskId: string, utterance: string, context?: TaskContext): Promise<void> {
     const controller = new AbortController();
     this.running.set(taskId, controller);
-    this.broadcast("task.started", { taskId, utterance });
+    this.broadcast("task.started", { taskId, utterance, startedAt: Date.now() });
     try {
       const summary = await runTask({ taskId, utterance, ...(context ? { context } : {}) }, this.deps!, controller.signal);
       this.broadcast("task.result", { taskId, summary });

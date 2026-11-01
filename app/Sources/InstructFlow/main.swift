@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let keysLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let agentLine = NSMenuItem(title: "Agent: off", action: nil, keyEquivalent: "")
     private let lastLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let tasksItem = NSMenuItem(title: "Agent Tasks", action: nil, keyEquivalent: "")
     private let offlineItem = NSMenuItem(title: "Offline mode (local only, no cleanup)", action: #selector(toggleOffline),
                                          keyEquivalent: "")
     private let cleanupItem = NSMenuItem(title: "AI cleanup", action: #selector(toggleCleanup), keyEquivalent: "")
@@ -55,11 +56,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         for item in [statusLine, listenerLine, keysLine, agentLine, lastLine] { menu.addItem(item) }
+        tasksItem.submenu = NSMenu()
         lastLine.isHidden = true
         menu.addItem(.separator())
         menu.addItem(withTitle: "Hold Right Shift to dictate · double-tap to latch", action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Right Shift + Right ⌘: give the agent a task", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
+        menu.addItem(tasksItem)
         menu.addItem(NSMenuItem(title: "Stop All Agent Tasks", action: #selector(stopAgents), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Agent Settings…", action: #selector(editAgentSettings),
                                 keyEquivalent: ""))
@@ -90,13 +93,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let ms = { (d: Duration) in Int((Double(d.components.seconds) + Double(d.components.attoseconds) / 1e18) * 1000) }
             dlog("done: mode=\(e.mode) audio=\(String(format: "%.1f", e.audioSeconds))s stt=\(e.sttSource.rawValue) "
                  + "sttLatency=\(ms(e.sttLatency))ms total=\(ms(e.latency))ms app=\(e.context.bundleID ?? "?") "
-                 + "cleanup=\(e.cleanupVia)\n"
+                 + "cleanup=\(e.cleanupVia)" + (e.sttNotes.isEmpty ? "" : " scribe: \(e.sttNotes)") + "\n"
                  + "    heard: \(e.rawTranscript)\n    typed: \(e.transcript)")
             DictationRecord.append([
                 "ts": Date().timeIntervalSince1970, "mode": "\(e.mode)", "app": e.context.bundleID ?? "",
                 "title": e.context.windowTitle ?? "", "heard": e.rawTranscript, "typed": e.transcript,
                 "stt": e.sttSource.rawValue, "cleanup": e.cleanupVia, "audio_s": e.audioSeconds,
-                "stt_ms": ms(e.sttLatency), "total_ms": ms(e.latency),
+                "stt_ms": ms(e.sttLatency), "total_ms": ms(e.latency), "stt_notes": e.sttNotes,
             ])
             self?.lastLine.title = "Last: \(ms(e.latency)) ms (\(e.sttSource.rawValue) speech, cleanup: "
                 + "\(e.cleanupVia.split(separator: " ").first ?? "none"))"
@@ -187,8 +190,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         listenerLine.title = tap.map { "Key listener: on (\($0.eventsSeen) key events seen)" } ?? "Key listener: off"
         keysLine.title = "Keys: \(KeyStore.summary)"
         agentLine.title = agent?.statusText ?? "Agent: off"
+        refreshTasks()
         offlineItem.state = offline ? .on : .off
         cleanupItem.state = cleanupEnabled ? .on : .off
+    }
+
+    /// Recent agent tasks, newest first; choosing one opens it in the island.
+    private func refreshTasks() {
+        guard let sub = tasksItem.submenu else { return }
+        sub.removeAllItems()
+        let tasks = agent?.store.tasks ?? []
+        let waiting = tasks.filter { $0.state == .waiting }.count
+        tasksItem.title = waiting > 0 ? "Agent Tasks (\(waiting) need you)" : "Agent Tasks"
+        if tasks.isEmpty {
+            sub.addItem(NSMenuItem(title: "No tasks yet: hold Right Shift + Right ⌘ and speak", action: nil, keyEquivalent: ""))
+            return
+        }
+        for t in tasks.prefix(10) {
+            let glyph: String
+            switch t.state {
+            case .running: glyph = "◐"
+            case .waiting: glyph = "⚠"
+            case .done: glyph = "✓"
+            case .failed: glyph = "✕"
+            case .stopped: glyph = "■"
+            }
+            let what = t.heard.isEmpty ? t.currentActivity : t.heard
+            let detail = t.isActive ? t.currentActivity : t.summary
+            let item = NSMenuItem(title: "\(glyph) \(String(what.prefix(60)))", action: #selector(showTask(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = t.id
+            item.toolTip = detail
+            sub.addItem(item)
+        }
+    }
+
+    @objc private func showTask(_ sender: NSMenuItem) {
+        if let id = sender.representedObject as? String { agent.island.focus(id) }
     }
 
     func menuWillOpen(_ menu: NSMenu) { refreshMenu() }

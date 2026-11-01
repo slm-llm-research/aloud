@@ -8,6 +8,13 @@ public protocol CleanupLLM: Sendable {
 public enum LLMError: Error, Equatable {
     case http(Int, String)
     case badResponse
+    /// Stopped at the token cap: the text is missing its end (BUG-001 H2).
+    case truncated
+}
+
+/// Room for the rewrite plus reasoning: about 1.5 tokens out per 4 characters in, never below `floor`.
+func outputTokenCap(for user: String, floor: Int) -> Int {
+    min(8_192, max(floor, user.utf8.count * 3 / 8 + 600))
 }
 
 /// OpenAI-compatible chat completions (Groq). M0 winner: `openai/gpt-oss-120b`, reasoning low:
@@ -41,7 +48,7 @@ public struct OpenAICompatibleLLM: CleanupLLM {
         req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var body: [String: Any] = [
-            "model": model, "temperature": 0, "max_tokens": 1200,
+            "model": model, "temperature": 0, "max_tokens": outputTokenCap(for: user, floor: 1200),
             "messages": [["role": "system", "content": system], ["role": "user", "content": user]],
         ]
         for (k, v) in extra { body[k] = v }
@@ -55,6 +62,7 @@ public struct OpenAICompatibleLLM: CleanupLLM {
               let message = choices.first?["message"] as? [String: Any],
               let content = message["content"] as? String
         else { throw LLMError.badResponse }
+        if choices.first?["finish_reason"] as? String == "length" { throw LLMError.truncated }
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
@@ -87,7 +95,7 @@ public struct AnthropicLLM: CleanupLLM {
         req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         req.setValue("application/json", forHTTPHeaderField: "content-type")
         let body: [String: Any] = [
-            "model": model, "max_tokens": 1024,
+            "model": model, "max_tokens": outputTokenCap(for: user, floor: 1024),
             "system": [["type": "text", "text": system, "cache_control": ["type": "ephemeral"]]],
             "thinking": ["type": "disabled"],
             "output_config": ["effort": "low"],
@@ -102,6 +110,7 @@ public struct AnthropicLLM: CleanupLLM {
               let content = json["content"] as? [[String: Any]]
         else { throw LLMError.badResponse }
         if json["stop_reason"] as? String == "refusal" { throw LLMError.badResponse }
+        if json["stop_reason"] as? String == "max_tokens" { throw LLMError.truncated }
         let text = content.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined()
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }

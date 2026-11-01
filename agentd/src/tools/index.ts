@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AgentConfig } from "../config.js";
 import { confine, PathOutsideRootsError } from "../paths.js";
 import { checkCommand } from "../shellPolicy.js";
-import { clip, defineTool, type ToolContract } from "./contract.js";
+import { clip, defineTool, oneLine, tilde, type ToolContract } from "./contract.js";
 import { runProcess } from "./process.js";
 
 function confined(p: string, cfg: AgentConfig): string | null {
@@ -33,6 +33,7 @@ export const openApp = defineTool({
   description: "Open (or bring to front) a macOS application by name, e.g. \"Cursor\", \"Slack\", \"Notes\".",
   input: z.object({ name: z.string().min(1).max(80).describe("Application name as shown in /Applications") }),
   effects: () => ["launch_app"],
+  title: (i) => `Open ${i.name}`,
   preview: (i) => `Open the app “${i.name}”`,
   check: (i) => (/[/\\]|\.\./.test(i.name) ? "give the app name, not a path" : null),
   async run(i, ctx) {
@@ -46,6 +47,7 @@ export const openUrl = defineTool({
   description: "Open an http(s) URL in the default browser.",
   input: z.object({ url: z.string().url() }),
   effects: () => ["open_url"],
+  title: (i) => `Open ${oneLine(i.url, 60)}`,
   preview: (i) => `Open ${i.url}`,
   check: (i) => (/^https?:\/\//i.test(i.url) ? null : "only http(s) URLs can be opened"),
   async run(i, ctx) {
@@ -59,6 +61,7 @@ export const listDir = defineTool({
   description: "List the entries of a folder (inside the allowed folders).",
   input: z.object({ path: z.string().describe("Folder path; ~ and paths relative to the first allowed folder work") }),
   effects: () => ["read_local"],
+  title: (i) => `List ${tilde(i.path)}`,
   preview: (i) => `List ${i.path}`,
   check: (i, cfg) => confined(i.path, cfg),
   async run(i, ctx) {
@@ -182,6 +185,7 @@ export const readFile = defineTool({
   description: "Read a text file (inside the allowed folders). Large files are truncated.",
   input: z.object({ path: z.string() }),
   effects: () => ["read_local"],
+  title: (i) => `Read ${path.basename(i.path)}`,
   preview: (i) => `Read ${i.path}`,
   check: (i, cfg) => confined(i.path, cfg),
   async run(i, ctx) {
@@ -214,6 +218,11 @@ export const writeFile = defineTool({
   description: "Create or overwrite a text file (inside the allowed folders). The user sees the diff and must approve.",
   input: z.object({ path: z.string(), content: z.string().max(500_000) }),
   effects: () => ["write_local"],
+  title(i, cfg) {
+    let file = i.path;
+    try { file = confine(i.path, cfg.allowedRoots); } catch { /* check() reports it */ }
+    return `${existsSync(file) ? "Change" : "Create"} ${path.basename(file)}`;
+  },
   preview(i, cfg) {
     let file = i.path;
     try { file = confine(i.path, cfg.allowedRoots); } catch { /* check() reports it */ }
@@ -243,6 +252,7 @@ export const runShell = defineTool({
     if (/\bgit\s+push\b/.test(i.command)) fx.push("network_write");
     return fx;
   },
+  title: (i) => `Run ${oneLine(i.command, 48)} in ${path.basename(i.cwd) || i.cwd}`,
   preview: (i) => `In ${i.cwd}, run:\n$ ${i.command}`,
   check(i, cfg) {
     const v = checkCommand(i.command, cfg.shellAllowlist);
@@ -268,6 +278,7 @@ export const claudeCodeTask = defineTool({
     instruction: z.string().min(10).max(8_000),
   }),
   effects: () => ["execute_process", "write_local"],
+  title: (i) => `Hand to Claude Code in ${path.basename(i.repo) || i.repo}`,
   preview: (i) => `Claude Code in ${i.repo} (may edit files there, no shell):\n${i.instruction}`,
   check: (i, cfg) => confined(i.repo, cfg) ?? (existsSync(cfg.claudePath) ? null : `Claude Code not found at ${cfg.claudePath}`),
   async run(i, ctx) {

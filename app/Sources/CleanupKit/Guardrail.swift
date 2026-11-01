@@ -79,10 +79,25 @@ public enum Guardrail {
         let negIn = Fidelity.negations(input), negOut = Fidelity.negations(out)
         if negOut > negIn || (negOut < negIn && !corrected) { return .reject("negation changed \(negIn)->\(negOut)") }
         if !corrected, !Fidelity.numbers(input).isSubset(of: Fidelity.numbers(out)) { return .reject("dropped a number") }
+        if !corrected, let lost = lostTail(input: input, output: out) { return .reject("dropped the ending: \(lost)") }
         if let fused = fusedFragment(in: out), !input.lowercased().contains(fused) {
             return .reject("fused stutter: \(fused)")
         }
         return replyCheck(input: input, output: out)
+    }
+
+    /// The last content words of the transcript are what a truncated rewrite loses first, and losing
+    /// a few of them can stay under the recall threshold (BUG-001). At least two of the last three
+    /// must survive; corrections are exempt because they usually rewrite the end.
+    static func lostTail(input: String, output: String) -> String? {
+        // Numbers are left out: "three hundred" becomes "300", and the number check covers them.
+        let tail = Array(Fidelity.tokens(input)
+            .filter { Fidelity.isContent($0) && !Fidelity.numberWords.contains($0) && $0.first?.isNumber != true }
+            .suffix(3))
+        guard tail.count == 3 else { return nil }
+        let out = Set(Fidelity.tokens(output))
+        let kept = tail.filter { w in out.contains(w) || out.contains(w + "s") || (w.hasSuffix("s") && out.contains(String(w.dropLast()))) }
+        return kept.count >= 2 ? nil : tail.joined(separator: " ")
     }
 
     /// "sub-sub-agent": a stutter glued onto the word it restarted.

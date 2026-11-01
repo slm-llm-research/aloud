@@ -25,6 +25,12 @@ public protocol StreamingSTTSession: AnyObject, Sendable {
     /// Key-up: flush, commit, and return the final transcript.
     func finish() async throws -> String
     func cancel()
+    /// One line for the log after `finish()` (segments received, whether the final one arrived).
+    var diagnostics: String { get }
+}
+
+extension StreamingSTTSession {
+    public var diagnostics: String { "" }
 }
 
 public protocol StreamingSTTProvider: Sendable {
@@ -92,6 +98,8 @@ public struct SessionEvent: Equatable, Sendable {
     public var sttLatency: Duration
     /// Key-up to text handed to the target app (before clipboard restore).
     public var latency: Duration
+    /// Cloud stream details for the log ("segments=3 early=2 final=yes"); empty without a stream.
+    public var sttNotes: String = ""
 }
 
 /// The cloud session for the recording in progress, shared with the audio thread.
@@ -128,6 +136,11 @@ private final class StreamSlot: @unchecked Sendable {
 public final class Session {
     /// Recordings shorter than this are almost always accidental presses; don't transcribe them.
     public static let minimumAudioSeconds = 0.3
+    /// Extra cloud wait per second of audio beyond 10 s, capped: the final segment of a long
+    /// dictation takes longer, and losing the race there means the local engine's long-clip output.
+    nonisolated static func raceWindow(base: Duration, audioSeconds: Double) -> Duration {
+        base + .milliseconds(Int(min(350, max(0, (audioSeconds - 10) * 10))))
+    }
 
     private let audio: AudioCapturing
     private let transcriber: Transcribing
@@ -136,6 +149,9 @@ public final class Session {
     private let cleaner: TextCleaning?
     private let tasks: TaskSubmitting?
     private let raceWindow: Duration
+    /// Keep recording this long after key-up: the last word is often still being said, and the tap
+    /// and hardware buffers hold ~20-100 ms that stopping the engine would discard (BUG-001 H4).
+    private let tailPad: Duration
     /// Reads the focused app (main actor, at key-up). Nil in tests that don't care.
     private let contextProvider: (@MainActor () -> DictationContext)?
     private let clock = ContinuousClock()
@@ -154,6 +170,7 @@ public final class Session {
     public init(audio: AudioCapturing, transcriber: Transcribing, inserter: TextInserting,
                 streaming: StreamingSTTProvider? = nil, cleaner: TextCleaning? = nil,
                 tasks: TaskSubmitting? = nil, raceWindow: Duration = .milliseconds(250),
+                tailPad: Duration = .milliseconds(120),
                 contextProvider: (@MainActor () -> DictationContext)? = nil) {
         self.audio = audio
         self.transcriber = transcriber
@@ -162,6 +179,7 @@ public final class Session {
         self.cleaner = cleaner
         self.tasks = tasks
         self.raceWindow = raceWindow
+        self.tailPad = tailPad
         self.contextProvider = contextProvider
         audio.onSamples = { [slot] samples in slot.feed(samples) }
     }
@@ -198,13 +216,16 @@ public final class Session {
         case .finish(let m):
             guard capturing else { return nil }
             let keyUp = clock.now
-            let samples = audio.end(discard: false)
-            let cloud = slot.take()
             // Where the text will go: read now, while the target app is surely still in front.
             let context = contextProvider?() ?? DictationContext()
             capturing = false
             busy = true
-            return Task { await self.process(samples, cloud: cloud, mode: m, context: context, keyUp: keyUp) }
+            return Task {
+                if self.tailPad > .zero { try? await Task.sleep(for: self.tailPad) }
+                let samples = self.audio.end(discard: false)
+                let cloud = self.slot.take()
+                await self.process(samples, cloud: cloud, mode: m, context: context, keyUp: keyUp)
+            }
         }
     }
 
@@ -227,7 +248,7 @@ public final class Session {
             outcome = try await STTRace.run(
                 cloud: cloudFinish,
                 local: { try await transcriber.transcribe(samples) },
-                window: raceWindow)
+                window: Self.raceWindow(base: raceWindow, audioSeconds: seconds))
         } catch {
             status = .failed("Transcription failed")
             return
@@ -260,6 +281,7 @@ public final class Session {
         }
         onCompleted?(SessionEvent(mode: mode, audioSeconds: seconds, rawTranscript: raw, transcript: text,
                                   sttSource: outcome.source, cleanupVia: cleaned.via, context: context,
-                                  sttLatency: sttLatency, latency: insertedAt - keyUp))
+                                  sttLatency: sttLatency, latency: insertedAt - keyUp,
+                                  sttNotes: cloud?.diagnostics ?? ""))
     }
 }

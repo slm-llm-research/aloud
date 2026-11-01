@@ -9,7 +9,72 @@ public enum AgentProtocol {
         public var tool: String
         public var preview: String
         public var effects: [String]
+        /// Card data from agentd (absent from older daemons): plain title, risk badge, auto-deny time.
+        public var title: String = ""
+        public var risk: Risk = .medium
+        public var expiresAt: Date?
         public var id: String { stepId }
+
+        public init(taskId: String, stepId: String, tool: String, preview: String, effects: [String],
+                    title: String = "", risk: Risk = .medium, expiresAt: Date? = nil) {
+            self.taskId = taskId
+            self.stepId = stepId
+            self.tool = tool
+            self.preview = preview
+            self.effects = effects
+            self.title = title
+            self.risk = risk
+            self.expiresAt = expiresAt
+        }
+    }
+
+    /// agentd's effects.ts `riskOf`.
+    public enum Risk: String, Equatable, Sendable {
+        case read, low, medium, high, blocked
+    }
+
+    public enum StepStatus: String, Equatable, Sendable {
+        case waiting, running, done, error, blocked, denied
+    }
+
+    /// One tool call in a task's timeline (task.step); later events for the same stepId replace it.
+    public struct Step: Equatable, Sendable, Identifiable {
+        public var taskId: String
+        public var stepId: String
+        public var tool: String
+        public var title: String
+        public var risk: Risk
+        public var status: StepStatus
+        public var result: String
+        public var startedAt: Date?
+        public var endedAt: Date?
+        public var id: String { stepId }
+
+        public init(taskId: String, stepId: String, tool: String, title: String, risk: Risk = .read,
+                    status: StepStatus, result: String = "", startedAt: Date? = nil, endedAt: Date? = nil) {
+            self.taskId = taskId
+            self.stepId = stepId
+            self.tool = tool
+            self.title = title
+            self.risk = risk
+            self.status = status
+            self.result = result
+            self.startedAt = startedAt
+            self.endedAt = endedAt
+        }
+    }
+
+    public enum PlanStatus: String, Equatable, Sendable {
+        case pending, inProgress, completed, canceled, failed
+    }
+
+    public struct PlanItem: Equatable, Sendable {
+        public var content: String
+        public var status: PlanStatus
+        public init(content: String, status: PlanStatus) {
+            self.content = content
+            self.status = status
+        }
     }
 
     public enum Event: Equatable, Sendable {
@@ -18,6 +83,10 @@ public enum AgentProtocol {
         case approval(ApprovalRequest)
         case result(taskId: String, summary: String)
         case error(taskId: String, message: String)
+        case plan(taskId: String, steps: [PlanItem])
+        case step(Step)
+        case note(taskId: String, text: String)
+        case metrics(taskId: String, inputTokens: Int, outputTokens: Int)
     }
 
     public enum Incoming: Equatable, Sendable {
@@ -54,6 +123,7 @@ public enum AgentProtocol {
         }
         guard let method = obj["method"] as? String, let p = obj["params"] as? [String: Any] else { return .unknown }
         let s = { (k: String) in p[k] as? String ?? "" }
+        let date = { (k: String) in (p[k] as? Double).map { Date(timeIntervalSince1970: $0 / 1000) } }
         switch method {
         case "task.started": return .event(.started(taskId: s("taskId"), utterance: s("utterance")))
         case "task.progress": return .event(.progress(taskId: s("taskId"), message: s("message")))
@@ -61,7 +131,24 @@ public enum AgentProtocol {
         case "task.error": return .event(.error(taskId: s("taskId"), message: s("message")))
         case "approval.request":
             return .event(.approval(ApprovalRequest(taskId: s("taskId"), stepId: s("stepId"), tool: s("tool"),
-                                                    preview: s("preview"), effects: p["effects"] as? [String] ?? [])))
+                                                    preview: s("preview"), effects: p["effects"] as? [String] ?? [],
+                                                    title: s("title"), risk: Risk(rawValue: s("risk")) ?? .medium,
+                                                    expiresAt: date("expiresAt"))))
+        case "task.plan":
+            let items = (p["steps"] as? [[String: Any]] ?? []).compactMap { d -> PlanItem? in
+                guard let c = d["content"] as? String else { return nil }
+                return PlanItem(content: c, status: PlanStatus(rawValue: d["status"] as? String ?? "") ?? .pending)
+            }
+            return .event(.plan(taskId: s("taskId"), steps: items))
+        case "task.step":
+            guard let status = StepStatus(rawValue: s("status")) else { return .unknown }
+            return .event(.step(Step(taskId: s("taskId"), stepId: s("stepId"), tool: s("tool"), title: s("title"),
+                                     risk: Risk(rawValue: s("risk")) ?? .read, status: status, result: s("result"),
+                                     startedAt: date("startedAt"), endedAt: date("endedAt"))))
+        case "task.note": return .event(.note(taskId: s("taskId"), text: s("text")))
+        case "task.metrics":
+            return .event(.metrics(taskId: s("taskId"), inputTokens: p["inputTokens"] as? Int ?? 0,
+                                   outputTokens: p["outputTokens"] as? Int ?? 0))
         default: return .unknown
         }
     }

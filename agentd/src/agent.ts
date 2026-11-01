@@ -4,7 +4,8 @@ import type { ApprovalBroker } from "./approvals.js";
 import type { AuditLog } from "./audit.js";
 import type { AgentConfig } from "./config.js";
 import { gatedRun } from "./gate.js";
-import type { ToolContract } from "./tools/contract.js";
+import { oneLine, type ToolContract } from "./tools/contract.js";
+import { updatePlan, type Plan } from "./tools/plan.js";
 
 export interface TaskContext {
   app?: string;
@@ -24,9 +25,12 @@ export interface GatedTool {
   call: (input: unknown) => Promise<string>;
 }
 
+/** Structured events for the app's timeline (task.step, task.plan, task.note, task.metrics). */
+export type Emit = (method: string, params: Record<string, unknown>) => void;
+
 /** Decides which tools to call. Real: Claude via the tool runner. Tests: a script. */
 export interface Planner {
-  run(req: TaskRequest, tools: GatedTool[], signal: AbortSignal): Promise<string>;
+  run(req: TaskRequest, tools: GatedTool[], signal: AbortSignal, emit?: Emit): Promise<string>;
 }
 
 export interface AgentDeps {
@@ -36,6 +40,7 @@ export interface AgentDeps {
   planner: Planner;
   tools: ToolContract[];
   progress: (taskId: string, message: string) => void;
+  emit?: Emit;
 }
 
 export async function runTask(req: TaskRequest, deps: AgentDeps, signal: AbortSignal): Promise<string> {
@@ -48,10 +53,23 @@ export async function runTask(req: TaskRequest, deps: AgentDeps, signal: AbortSi
         broker: deps.broker,
         audit: deps.audit,
         progress: (m) => deps.progress(req.taskId, m),
+        ...(deps.emit ? { emit: deps.emit } : {}),
       }),
   }));
+  // The checklist changes nothing on the machine, so it skips the gate and goes straight to the app.
+  gated.push({
+    contract: updatePlan as ToolContract,
+    call: async (input) => {
+      const parsed = updatePlan.input.safeParse(input);
+      if (!parsed.success) return "Invalid plan: send {steps: [{content, status}]}.";
+      const steps: Plan = parsed.data.steps;
+      deps.audit.write("task.plan", { taskId: req.taskId, steps });
+      deps.emit?.("task.plan", { taskId: req.taskId, steps });
+      return updatePlan.run(parsed.data, { cfg: deps.cfg, signal });
+    },
+  });
   try {
-    const summary = await deps.planner.run(req, gated, signal);
+    const summary = await deps.planner.run(req, gated, signal, deps.emit);
     deps.audit.write("task.done", { taskId: req.taskId, summary });
     return summary;
   } catch (e) {
@@ -66,6 +84,7 @@ export function systemPrompt(cfg: AgentConfig): string {
 
 Use the tools to do the task. Rules:
 - Every step that changes something (writing files, running commands, delegating to Claude Code) is shown to the user for approval. If a step is DECLINED or BLOCKED, stop and report it; never retry it or find another way to achieve the same effect.
+- For anything with more than one step, call update_plan first with a short checklist, and again as steps finish. The user watches it live.
 - Prefer the least invasive tool: read before writing, inspect before changing. To look at files use list_dir, find_files, search_files and read_file; they need no approval. Use run_shell only for things those can't do (running tests, git commands, builds).
 - The task was spoken, so names may be split or misheard ("agent D" is probably the folder agentd). When the user names a project or folder, look it up with find_folders before concluding it doesn't exist.
 - You can only work inside these folders: ${cfg.allowedRoots.join(", ")}.
@@ -84,7 +103,7 @@ function taskMessage(req: TaskRequest): string {
 export class ClaudePlanner implements Planner {
   constructor(private readonly client: Anthropic, private readonly cfg: AgentConfig) {}
 
-  async run(req: TaskRequest, tools: GatedTool[], signal: AbortSignal): Promise<string> {
+  async run(req: TaskRequest, tools: GatedTool[], signal: AbortSignal, emit?: Emit): Promise<string> {
     const runnable = tools.map((t) =>
       betaZodTool({
         name: t.contract.name,
@@ -93,7 +112,7 @@ export class ClaudePlanner implements Planner {
         run: (input: unknown) => t.call(input),
       }),
     );
-    const final = await this.client.beta.messages.toolRunner(
+    const runner = this.client.beta.messages.toolRunner(
       {
         model: this.cfg.model,
         max_tokens: 16_000,
@@ -108,6 +127,25 @@ export class ClaudePlanner implements Planner {
       },
       { signal },
     );
+    // Step through the loop (the runner runs the tool calls at the end of each iteration) so the
+    // app sees the model's commentary between tools and the running token count.
+    let final: Anthropic.Beta.BetaMessage | undefined;
+    const usage = { inputTokens: 0, outputTokens: 0, turns: 0 };
+    for await (const message of runner) {
+      final = message;
+      usage.inputTokens += message.usage.input_tokens + (message.usage.cache_read_input_tokens ?? 0)
+        + (message.usage.cache_creation_input_tokens ?? 0);
+      usage.outputTokens += message.usage.output_tokens;
+      usage.turns += 1;
+      const said = message.content
+        .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join(" ")
+        .trim();
+      if (said && message.stop_reason === "tool_use") emit?.("task.note", { taskId: req.taskId, text: oneLine(said, 200) });
+      emit?.("task.metrics", { taskId: req.taskId, ...usage });
+    }
+    if (!final) return "Done.";
     if (final.stop_reason === "refusal") return "Claude declined this task.";
     const text = final.content
       .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")

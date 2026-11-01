@@ -33,3 +33,14 @@ export function decide(effects: readonly Effect[]): Decision {
   if (effects.some((e) => CONFIRM.has(e))) return { kind: "confirm" };
   return { kind: "auto" };
 }
+
+/** How the approval card should look: "read" steps need no card at all. */
+export type Risk = "read" | "low" | "medium" | "high" | "blocked";
+
+export function riskOf(effects: readonly Effect[]): Risk {
+  if (effects.some((e) => BLOCKED.has(e))) return "blocked";
+  if (effects.some((e) => e === "network_write" || e === "send_message")) return "high";
+  if (effects.includes("execute_process")) return "medium";
+  if (effects.includes("write_local")) return "low";
+  return "read";
+}

@@ -298,3 +298,15 @@ struct StreamingSessionTests {
         #expect(s.status == .failed("Agent isn't running (see the InstructFlow menu)"))
     }
 }
+
+@Suite("Race window")
+struct RaceWindowTests {
+    @Test func shortClipsKeepTheTunedWindow() {
+        #expect(Session.raceWindow(base: .milliseconds(250), audioSeconds: 4) == .milliseconds(250))
+    }
+
+    @Test func longClipsWaitLongerForTheCloudCapped() {
+        #expect(Session.raceWindow(base: .milliseconds(250), audioSeconds: 40) == .milliseconds(550))
+        #expect(Session.raceWindow(base: .milliseconds(250), audioSeconds: 120) == .milliseconds(600))
+    }
+}

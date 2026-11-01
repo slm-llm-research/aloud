@@ -283,3 +283,57 @@ describe("socket protocol", () => {
     await srv.stop();
   });
 });
+
+describe("timeline events (agent UI)", () => {
+  async function runWithEvents(env: ReturnType<typeof setup>, steps: [string, unknown][]) {
+    const events: [string, Record<string, unknown>][] = [];
+    const planner = new ScriptedPlanner(steps);
+    await runTask({ taskId: "t1", utterance: "test" }, {
+      cfg: env.cfg, broker: env.broker, audit: env.audit, planner, tools: ALL_TOOLS,
+      progress: () => {}, emit: (m, p) => events.push([m, p]),
+    }, new AbortController().signal);
+    return { events, results: planner.results };
+  }
+
+  it("a read step reports running then done, with a plain title and no approval", async () => {
+    const env = setup();
+    const { events } = await runWithEvents(env, [["list_dir", { path: env.root }]]);
+    const steps = events.filter(([m]) => m === "task.step").map(([, p]) => p);
+    expect(steps.map((s) => s.status)).toEqual(["running", "done"]);
+    expect(steps[0]!.risk).toBe("read");
+    expect(String(steps[0]!.title)).toMatch(/^List /);
+    expect(steps[0]!.stepId).toBe(steps[1]!.stepId);
+    expect(env.requests).toHaveLength(0);
+  });
+
+  it("an approval card carries title, risk, expiry and the same step id as the timeline", async () => {
+    const env = setup();
+    const { events } = await runWithEvents(env, [["run_shell", { command: "echo hi", cwd: env.root }]]);
+    const steps = events.filter(([m]) => m === "task.step").map(([, p]) => p);
+    expect(steps.map((s) => s.status)).toEqual(["waiting", "running", "done"]);
+    const req = env.requests[0]!;
+    expect(req.title).toMatch(/^Run echo hi in /);
+    expect(req.risk).toBe("medium");
+    expect(req.expiresAt).toBeGreaterThan(Date.now());
+    expect(req.stepId).toBe(steps[0]!.stepId);
+  });
+
+  it("declined and blocked steps say so", async () => {
+    const env = setup(() => "deny");
+    const { events } = await runWithEvents(env, [
+      ["write_file", { path: "x.txt", content: "y" }],
+      ["run_shell", { command: "sudo ls", cwd: env.root }],
+    ]);
+    const statuses = events.filter(([m]) => m === "task.step").map(([, p]) => p.status);
+    expect(statuses).toEqual(["waiting", "denied", "blocked"]);
+  });
+
+  it("update_plan needs no approval and sends the whole checklist", async () => {
+    const env = setup();
+    const plan = { steps: [{ content: "List the folder", status: "completed" }, { content: "Summarise", status: "inProgress" }] };
+    const { events, results } = await runWithEvents(env, [["update_plan", plan]]);
+    expect(results[0]).toMatch(/Plan shown/);
+    expect(events).toContainEqual(["task.plan", { taskId: "t1", steps: plan.steps }]);
+    expect(env.requests).toHaveLength(0);
+  });
+});

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Effect } from "./effects.js";
+import type { Effect, Risk } from "./effects.js";
 
 export type ApprovalDecision = "approve" | "deny";
 
@@ -9,6 +9,16 @@ export interface ApprovalRequest {
   tool: string;
   preview: string;
   effects: Effect[];
+  /** For the card: plain-language title, risk badge, and when agentd will auto-deny (ms since epoch). */
+  title?: string;
+  risk?: Risk;
+  expiresAt?: number;
+}
+
+export interface ApprovalCard {
+  stepId?: string;
+  title?: string;
+  risk?: Risk;
 }
 
 /**
@@ -23,8 +33,12 @@ export class ApprovalBroker {
     private readonly timeoutMs: number,
   ) {}
 
-  request(taskId: string, tool: string, preview: string, effects: Effect[]): Promise<ApprovalDecision> {
-    const req: ApprovalRequest = { taskId, stepId: randomUUID(), tool, preview, effects };
+  request(taskId: string, tool: string, preview: string, effects: Effect[], card: ApprovalCard = {}): Promise<ApprovalDecision> {
+    const req: ApprovalRequest = {
+      taskId, stepId: card.stepId ?? randomUUID(), tool, preview, effects,
+      ...(card.title ? { title: card.title } : {}), ...(card.risk ? { risk: card.risk } : {}),
+      expiresAt: Date.now() + this.timeoutMs,
+    };
     return new Promise((resolve) => {
       const timer = setTimeout(() => this.settle(req.stepId, "deny"), this.timeoutMs);
       this.pending.set(req.stepId, { req, resolve, timer });

@@ -244,7 +244,15 @@ The design and the research behind it are in [`research/06-intent-aware-cleanup.
 
 `agentd` is a small Node/TypeScript daemon. It runs a Claude agent (Opus by default) with a fixed set of
 tools, each of which declares its effects. Anything that writes, runs or opens something needs your
-approval in a panel first.
+approval first.
+
+**The agent island.** While a task runs, a small capsule at the top of the screen (hanging from the
+notch on MacBooks) shows what the agent is doing: the step in progress, "2/4" from its plan, and the
+elapsed time. Hover it to see what it heard, the plan as a checklist, each tool step with its result
+and timing, and a stop button. When a step needs you, the island turns into an approval card in place
+with a risk badge, a plain title ("Run git status in voice-flow"), the exact command or a coloured diff,
+and a countdown to the automatic deny. It never takes focus from the app you're in; click the card and
+⌘↩ approves, Esc denies, ⌘. stops the task. **Agent Tasks** in the menu lists recent tasks.
 
 | Tool | Effect | Approval |
 |---|---|---|
@@ -369,9 +377,10 @@ app/                     macOS menu-bar app (Swift 6.1, SwiftPM, no Xcode projec
   Sources/STTKit/        Scribe realtime client, Parakeet on-device model
   Sources/CleanupKit/    mode router, rule passes, prompts, LLM clients, fidelity guardrail
   Sources/InsertKit/     clipboard-safe paste and key typing
-  Sources/AgentKit/      agentd process and socket client
+  Sources/AgentKit/      agentd process, socket client, task store
+  Sources/AgentUI/       the agent island (SwiftUI): task pill, plan drawer, approval card
   Sources/InstructFlowCore/  session: record -> transcribe -> clean -> insert
-  Sources/InstructFlow/  app, menu, HUD, permissions, agent panel
+  Sources/InstructFlow/  app, menu, HUD, permissions
   Tests/                 unit tests, live tests (opt-in), scenario replay
   scripts/               bundle.sh, make-signing-cert.sh
 agentd/                  local agent daemon (Node 22, TypeScript, Anthropic SDK)

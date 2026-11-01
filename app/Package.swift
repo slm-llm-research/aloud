@@ -24,12 +24,14 @@ let package = Package(
         .target(name: "CleanupKit"),
         // Client for the local agent daemon (agentd/): socket protocol, connection, process.
         .target(name: "AgentKit"),
+        // The agent island: task state, plan and approval cards at the top of the screen (SwiftUI).
+        .target(name: "AgentUI", dependencies: ["AgentKit"]),
         // The session flow (record -> transcribe race -> clean -> insert). Depends only on
         // protocols, so it is tested with fakes.
         .target(name: "InstructFlowCore", dependencies: ["HotkeyKit"]),
         // The menubar app: wires the real implementations into InstructFlowCore.
         .executableTarget(name: "InstructFlow",
-                          dependencies: ["HotkeyKit", "AudioKit", "STTKit", "InsertKit", "CleanupKit", "AgentKit", "InstructFlowCore"]),
+                          dependencies: ["HotkeyKit", "AudioKit", "STTKit", "InsertKit", "CleanupKit", "AgentKit", "AgentUI", "InstructFlowCore"]),
 
         .testTarget(name: "HotkeyKitTests", dependencies: ["HotkeyKit"]),
         .testTarget(name: "AudioKitTests", dependencies: ["AudioKit"]),
@@ -41,5 +43,7 @@ let package = Package(
         .testTarget(name: "CleanupKitTests", dependencies: ["CleanupKit"]),
         // Protocol unit tests; with INSTRUCTFLOW_INTEGRATION=1, a real agentd round trip (ping only, no LLM).
         .testTarget(name: "AgentKitTests", dependencies: ["AgentKit"]),
+        // Renders the island's states to PNG when INSTRUCTFLOW_RENDER_DIR is set (visual check).
+        .testTarget(name: "AgentUITests", dependencies: ["AgentUI", "AgentKit"]),
     ]
 )

@@ -25,6 +25,7 @@ const server = new AgentServer(cfg.socketPath, (notify) => {
     deps: {
       cfg, broker, audit, planner, tools: ALL_TOOLS,
       progress: (taskId, message) => notify("task.progress", { taskId, message }),
+      emit: (method, params) => notify(method, params),
     },
   };
 });

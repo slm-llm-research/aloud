@@ -1,9 +1,10 @@
 import AgentKit
+import AgentUI
 import AppKit
 import InstructFlowCore
 
-/// Owns the agent side of the app: starts agentd, forwards spoken tasks, shows approvals/results,
-/// and provides the kill switch.
+/// Owns the agent side of the app: starts agentd, forwards spoken tasks, feeds the task store that
+/// the agent island and the menu show, and provides the kill switch.
 @MainActor
 final class AgentController: TaskSubmitting {
     static let configURL = AppDelegate.supportDir.appendingPathComponent("agent.json")
@@ -17,10 +18,10 @@ final class AgentController: TaskSubmitting {
         .appendingPathComponent("agentd/dist/main.js").path
 
     let client = AgentClient(socketPath: socketPath)
-    private let panel = AgentPanel()
+    let store = TaskStore()
+    private(set) lazy var island = AgentIsland(store: store)
     private var process: AgentProcess?
     private let hud: HUD
-    private(set) var activeTasks = Set<String>()
     var onChange: (() -> Void)?
 
     init(hud: HUD) {
@@ -30,11 +31,11 @@ final class AgentController: TaskSubmitting {
             dlog("agent: \(up ? "connected" : "disconnected")")
             self?.onChange?()
         }
-        panel.onDecision = { [weak self] req, approved in
+        island.onDecision = { [weak self] req, approved in
             dlog("agent: \(approved ? "approved" : "denied") \(req.tool)")
             Task { try? await self?.client.respond(stepId: req.stepId, approve: approved) }
         }
-        panel.onStop = { [weak self] in self?.stopAll() }
+        island.onStop = { [weak self] id in self?.stop(id) }
     }
 
     func start() {
@@ -70,7 +71,10 @@ final class AgentController: TaskSubmitting {
 
     var statusText: String {
         if !client.isConnected { return "Agent: off" }
-        return activeTasks.isEmpty ? "Agent: ready" : "Agent: \(activeTasks.count) task(s) running"
+        let active = store.activeTasks
+        if active.isEmpty { return "Agent: ready" }
+        let waiting = active.filter { $0.state == .waiting }.count
+        return "Agent: \(active.count) running" + (waiting > 0 ? " · \(waiting) needs you" : "")
     }
 
     // MARK: TaskSubmitting
@@ -99,27 +103,31 @@ final class AgentController: TaskSubmitting {
         }
     }
 
+    /// Stops one task (the island's stop button, ⌘. on its card).
+    func stop(_ taskId: String) {
+        Task {
+            let ok = (try? await client.cancel(taskId: taskId)) ?? false
+            dlog("agent: stop \(taskId) -> \(ok)")
+        }
+    }
+
     private func handle(_ event: AgentProtocol.Event) {
+        store.apply(event)
         switch event {
-        case .started(let id, let utterance):
-            activeTasks.insert(id)
-            hud.showMessage("Agent: \(utterance)")
+        case .started(let id, _):
             dlog("agent: started \(id)")
-        case .progress(_, let message):
-            hud.showMessage("Agent: \(message)", for: .seconds(6))
         case .approval(let req):
             dlog("agent: approval requested for \(req.tool)")
-            panel.enqueue(req)
         case .result(let id, let summary):
-            activeTasks.remove(id)
-            panel.taskEnded(id)
-            panel.showResult(summary, failed: false)
+            island.taskEnded(id, failed: false)
             dlog("agent: done \(id): \(summary)")
         case .error(let id, let message):
-            activeTasks.remove(id)
-            panel.taskEnded(id)
-            panel.showResult(message == "cancelled" ? "Stopped." : "The task failed: \(message)", failed: true)
+            island.taskEnded(id, failed: message != "cancelled")
             dlog("agent: error \(id): \(message)")
+        case .step(let s) where s.status == .blocked || s.status == .error:
+            dlog("agent: step \(s.status.rawValue) \(s.tool): \(s.result)")
+        case .progress, .plan, .step, .note, .metrics:
+            break
         }
         onChange?()
     }

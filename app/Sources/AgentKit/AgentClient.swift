@@ -147,6 +147,11 @@ public final class AgentClient {
     }
 
     @discardableResult
+    public func cancel(taskId: String) async throws -> Bool {
+        try await call("task.cancel", ["taskId": taskId])["cancelled"]?.bool ?? false
+    }
+
+    @discardableResult
     public func cancelAll() async throws -> Int {
         Int(try await call("task.cancelAll")["cancelled"]?.number ?? 0)
     }
